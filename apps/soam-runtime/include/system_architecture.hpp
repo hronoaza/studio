@@ -4,10 +4,15 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
 namespace AdaptiveMesh {
+
+class ProductionTransitionEvaluator;
+namespace detail { class ProductionTransitionEvaluationBindingState; }
 
 void requireFinite(double value, const char* name);
 
@@ -46,6 +51,7 @@ struct SpatialBridge {
     double orientationWeight;
     double capacity = 1.0;
     BridgeStatus status = BridgeStatus::NORMAL;
+    std::uint64_t generation = 0;
 
     void updateBridgeState(SignalCategory category);
     [[nodiscard]] double getEffectiveCoupling() const;
@@ -97,9 +103,34 @@ public:
     [[nodiscard]] double getNodeHealth(std::size_t id) const;
     [[nodiscard]] std::size_t getNodeBridgesCount(std::size_t id) const;
 
+    [[nodiscard]] ProductionTransitionEvaluator
+    productionTransitionEvaluator() const noexcept;
+
 private:
+    struct TransitionSnapshot {
+        std::size_t sourceNodeId;
+        std::size_t targetNodeId;
+        std::uint64_t relationshipGeneration;
+        std::uint64_t stateVersion;
+    };
+
+    [[nodiscard]] bool transitionLocatorIsValid(
+        std::size_t sourceNodeId,
+        std::size_t targetNodeId) const noexcept;
+
+    [[nodiscard]] std::optional<TransitionSnapshot> captureTransitionSnapshot(
+        std::size_t sourceNodeId,
+        std::size_t targetNodeId) const;
+
+    [[nodiscard]] bool revalidateTransitionSnapshot(
+        const TransitionSnapshot& snapshot) const;
+
     struct Impl;
     std::unique_ptr<Impl> impl_;
+    std::shared_ptr<detail::ProductionTransitionEvaluationBindingState>
+        transitionEvaluationBinding_;
+
+    friend class ProductionTransitionEvaluator;
 };
 
 } // namespace AdaptiveMesh

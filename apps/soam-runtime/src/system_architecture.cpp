@@ -1,4 +1,6 @@
 #include "system_architecture.hpp"
+#include "production_transition_evaluator.hpp"
+#include "detail/production_transition_evaluation_binding.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -210,6 +212,8 @@ struct SpatialAdaptiveMesh::Impl {
     std::vector<std::vector<BridgeStatus>> pendingBridgeStatuses;
 
     bool simulationBufferShapeDirty = true;
+    std::uint64_t nextRelationshipGeneration = 0;
+    std::uint64_t transitionStateVersion = 1;
 
     explicit Impl(std::size_t maxWorkers)
         : workerLimit(maxWorkers)
@@ -299,14 +303,18 @@ struct SpatialAdaptiveMesh::Impl {
             const double reverse =
                 nodes[target].position.orientationFactorTo(
                     nodes[source].position);
+            const std::uint64_t relationshipGeneration =
+                ++nextRelationshipGeneration;
 
             pending.push_back({
                 source,
-                {nodeB, distance, forward, 1.0, BridgeStatus::NORMAL}
+                {nodeB, distance, forward, 1.0, BridgeStatus::NORMAL,
+                 relationshipGeneration}
             });
             pending.push_back({
                 target,
-                {nodeA, distance, reverse, 1.0, BridgeStatus::NORMAL}
+                {nodeA, distance, reverse, 1.0, BridgeStatus::NORMAL,
+                 relationshipGeneration}
             });
 
             ++additions[source];
@@ -329,6 +337,7 @@ struct SpatialAdaptiveMesh::Impl {
         if (!pairs.empty()) {
             enforceStabilityConditionUnlocked();
             simulationBufferShapeDirty = true;
+            ++transitionStateVersion;
         }
     }
 
@@ -557,6 +566,7 @@ struct SpatialAdaptiveMesh::Impl {
 
         nodes.emplace_back(id, position, baseline);
         simulationBufferShapeDirty = true;
+        ++transitionStateVersion;
     }
 
     void connectNodes(int nodeA, int nodeB) {
@@ -700,6 +710,9 @@ struct SpatialAdaptiveMesh::Impl {
         enforceStabilityConditionUnlocked();
         simulationBufferShapeDirty =
             simulationBufferShapeDirty || changed;
+        if (changed) {
+            ++transitionStateVersion;
+        }
     }
 
     void autoConnectNearbyNodes(double radius) {
@@ -757,6 +770,7 @@ struct SpatialAdaptiveMesh::Impl {
             node.applyLocalReflexFilter(
                 node.state.load() + shockMagnitude));
         node.updateHealth();
+        ++transitionStateVersion;
     }
 
     void simulationStep() {
@@ -875,15 +889,22 @@ struct SpatialAdaptiveMesh::Impl {
                         [nodeId][bridgeIndex];
             }
         }
+
+        ++transitionStateVersion;
     }
 };
 
 SpatialAdaptiveMesh::SpatialAdaptiveMesh(std::size_t maxWorkers)
-    : impl_(std::make_unique<Impl>(maxWorkers))
+    : impl_(std::make_unique<Impl>(maxWorkers)),
+      transitionEvaluationBinding_(
+          detail::makeProductionTransitionEvaluationBinding(this))
 {
 }
 
-SpatialAdaptiveMesh::~SpatialAdaptiveMesh() = default;
+SpatialAdaptiveMesh::~SpatialAdaptiveMesh() {
+    detail::invalidateProductionTransitionEvaluationBinding(
+        transitionEvaluationBinding_);
+}
 
 void SpatialAdaptiveMesh::addNode(
     std::size_t id,
@@ -951,6 +972,80 @@ std::size_t SpatialAdaptiveMesh::getNodeBridgesCount(
 {
     std::shared_lock lock(impl_->topologyMutex);
     return impl_->nodes.at(id).bridges.size();
+}
+
+ProductionTransitionEvaluator
+SpatialAdaptiveMesh::productionTransitionEvaluator() const noexcept {
+    return ProductionTransitionEvaluator{transitionEvaluationBinding_};
+}
+
+bool SpatialAdaptiveMesh::transitionLocatorIsValid(
+    std::size_t sourceNodeId,
+    std::size_t targetNodeId) const noexcept
+{
+    std::shared_lock lock(impl_->topologyMutex);
+    return sourceNodeId < impl_->nodes.size() &&
+           targetNodeId < impl_->nodes.size() &&
+           sourceNodeId != targetNodeId;
+}
+
+std::optional<SpatialAdaptiveMesh::TransitionSnapshot>
+SpatialAdaptiveMesh::captureTransitionSnapshot(
+    std::size_t sourceNodeId,
+    std::size_t targetNodeId) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (sourceNodeId >= impl_->nodes.size() ||
+        targetNodeId >= impl_->nodes.size() ||
+        sourceNodeId == targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& bridges = impl_->nodes[sourceNodeId].bridges;
+    const auto found = std::find_if(
+        bridges.begin(),
+        bridges.end(),
+        [targetNodeId](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(targetNodeId);
+        });
+
+    if (found == bridges.end()) {
+        return std::nullopt;
+    }
+
+    return TransitionSnapshot{
+        sourceNodeId,
+        targetNodeId,
+        found->generation,
+        impl_->transitionStateVersion
+    };
+}
+
+bool SpatialAdaptiveMesh::revalidateTransitionSnapshot(
+    const TransitionSnapshot& snapshot) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (snapshot.sourceNodeId >= impl_->nodes.size() ||
+        snapshot.targetNodeId >= impl_->nodes.size() ||
+        impl_->transitionStateVersion != snapshot.stateVersion) {
+        return false;
+    }
+
+    const auto& bridges = impl_->nodes[snapshot.sourceNodeId].bridges;
+    const auto found = std::find_if(
+        bridges.begin(),
+        bridges.end(),
+        [&snapshot](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                       static_cast<int>(snapshot.targetNodeId) &&
+                   bridge.generation ==
+                       snapshot.relationshipGeneration;
+        });
+
+    return found != bridges.end();
 }
 
 } // namespace AdaptiveMesh
