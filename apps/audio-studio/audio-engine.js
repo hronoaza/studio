@@ -78,12 +78,11 @@ const root = globalThis;
   function scheduleStop(g, now = g.ctx.currentTime) {
     const p = g.outputGain.gain;
     const value = envelopeAt(g, now);
-    if (typeof p.cancelAndHoldAtTime === 'function') p.cancelAndHoldAtTime(now);
-    else {
-      // This parameter is owned exclusively here; its linear envelope is known.
-      p.cancelScheduledValues(now);
-      p.setValueAtTime(value, now);
-    }
+    // Explicitly anchor the fade at the intended current envelope value.
+    // cancelAndHoldAtTime() does not provide consistent anchoring for the
+    // subsequent ramp across tested OfflineAudioContext implementations.
+    p.cancelScheduledValues(now);
+    p.setValueAtTime(value, now);
     const end = now + SETTINGS.stop;
     p.linearRampToValueAtTime(0, end);
     g.envelope = {from: value, to: 0, start: now, end};
