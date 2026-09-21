@@ -109,7 +109,8 @@ public:
     [[nodiscard]] ProductionTransitionEvaluator
     productionTransitionEvaluator() const noexcept;
 
-    [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>\n    captureProductionRelationshipSourceSnapshot(
+    [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>
+    captureProductionRelationshipSourceSnapshot(
         const ProductionTransitionEvaluationLocator& locator) const;
 
 private:
