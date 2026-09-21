@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `candidate`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Source archive: `adaptive-mesh-main (2).zip`
 - Source archive SHA-256: `f14900ddb77852dbf3935562fdb5f73a051338ade1bb60a84f4d1fde59577c03`
 - Migration branch: `migration/soam-2.0-transition-eligibility`
@@ -67,3 +67,24 @@ phase; the seam is inactive and does not grant runtime authority.
 Local C++20 Debug preflight with ASan + UBSan: 1/1 PASS.
 
 Final acceptance remains an explicit Root Operator decision.
+
+
+## Current repository validation
+
+Validated head:
+
+`dc2930b4a6bdc68d8d564122b6c8f4905ae3fe2c`
+
+GitHub Actions run #1, run ID `35644105465`:
+
+- GNU 13.3.0 + ASan + UBSan: 1/1 PASS
+- Clang 18.1.3 + ASan + UBSan: 1/1 PASS
+- no sanitizer-reported error observed in reviewed logs
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
