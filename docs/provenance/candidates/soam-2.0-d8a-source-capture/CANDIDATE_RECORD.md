@@ -3,7 +3,7 @@
 ## Status
 
 - Development class: new candidate layer
-- Acceptance status: not accepted into Current Baseline
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Branch: `candidate/soam-2.0-d8a-native-provenance`
 - Base architecture: accepted D7 boundary plus accepted provenance refinement map
 
@@ -133,3 +133,30 @@ while:
 `source snapshot = which live relationship incarnation was observed`
 
 The lower addressing type is independent of transition-evaluator semantics.
+
+
+## Final validation state
+
+Validated implementation/test head:
+
+`39ca8ff736c3ad21f4f0b5b644b42c0147c73699`
+
+Successful workflows:
+
+- Runtime Validation #29, ID `35653148265`;
+- D8A Source Capture Validation #15, ID `35653148247`;
+- Live Evaluator Validation #26, ID `35653148270`;
+- D7 Provenance Gate Validation #24, ID `35653148317`.
+
+Each workflow passed 8/8 tests under both Debug ASan/UBSan and TSan jobs.
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+Documentation commits after the validated head do not modify the validated
+runtime implementation, tests, CMake registration, or workflow definitions.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
