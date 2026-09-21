@@ -974,6 +974,49 @@ std::size_t SpatialAdaptiveMesh::getNodeBridgesCount(
     return impl_->nodes.at(id).bridges.size();
 }
 
+std::optional<ProductionRelationshipProvenance>
+SpatialAdaptiveMesh::captureProductionRelationshipProvenance(
+    const ProductionTransitionEvaluationLocator& locator) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (locator.sourceNodeId >= impl_->nodes.size() ||
+        locator.targetNodeId >= impl_->nodes.size() ||
+        locator.sourceNodeId == locator.targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& source = impl_->nodes[locator.sourceNodeId];
+    const auto& target = impl_->nodes[locator.targetNodeId];
+
+    const auto found = std::find_if(
+        source.bridges.begin(),
+        source.bridges.end(),
+        [&locator](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(locator.targetNodeId);
+        });
+
+    if (found == source.bridges.end()) {
+        return std::nullopt;
+    }
+
+    return ProductionRelationshipProvenance{
+        locator.sourceNodeId,
+        locator.targetNodeId,
+        found->generation,
+        impl_->transitionStateVersion,
+        found->distance,
+        found->orientationWeight,
+        found->capacity,
+        found->status,
+        source.state.load(),
+        target.state.load(),
+        source.healthIndex.load(),
+        target.healthIndex.load()
+    };
+}
+
 ProductionTransitionEvaluator
 SpatialAdaptiveMesh::productionTransitionEvaluator() const noexcept {
     return ProductionTransitionEvaluator{transitionEvaluationBinding_};
