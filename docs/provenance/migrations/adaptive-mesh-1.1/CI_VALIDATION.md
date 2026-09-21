@@ -82,3 +82,39 @@ This evidence is specific to:
 It does not by itself prove absence of all memory errors, undefined behavior, data races, deadlocks, starvation, numerical instability, or correctness for arbitrary graph sizes and workloads.
 
 Final acceptance into the Current Baseline remains a separate operator decision.
+
+
+## Expanded invariant and stress validation
+
+A broader test surface was added without changing the production header.
+
+Validated code/workflow head:
+
+`105fe83137a61f21473612b9a008989489f386e6`
+
+GitHub Actions:
+
+- Workflow: `Adaptive Mesh Validation`
+- Run: `#4`
+- Run ID: `35637241950`
+- Conclusion: `success`
+
+Both sanitizer jobs executed two registered CTest targets:
+
+1. `run_mesh_tests` — deterministic invariant and behavioral checks.
+2. `run_mesh_stress_tests` — 32 nodes, 100 asynchronous simulation steps, periodic external shocks, finite-state and health-bound assertions.
+
+Observed CI evidence:
+
+| Job | CTest | Invariant suite | Stress suite | Sanitizer-reported error |
+|---|---|---|---|---|
+| Debug + ASan + UBSan | 2/2 PASS | PASS | PASS | none observed |
+| TSan, assertions enabled | 2/2 PASS | PASS | PASS | none observed |
+
+The expanded tests cover geometry, identity bounds, meta-evaluation categories, bridge state transitions, local reflex clamping, nearby-node connection behavior, duplicate protection in auto-connect, state/health finiteness, and repeated asynchronous simulation.
+
+The production file `apps/adaptive-mesh/include/system_architecture.hpp` was unchanged by this test expansion.
+
+### Interpretation boundary
+
+Run #4 materially increases confidence in the exercised behavior, but it is not a proof for every graph topology, schedule interleaving, compiler, platform, or untested API call. In particular, direct `connectNodes()` input validation and arbitrary concurrent mutation of mesh topology are outside the exercised contract.
