@@ -66,17 +66,28 @@ The cleaned package was checked locally before migration:
 
 These checks are scoped observations and do not establish complete security, ownership, scientific validity, hearing safety, or full DSP correctness.
 
-## Verification not yet completed
+## Current verification status
 
-The following are still pending or incomplete:
+Repository CI later completed the previously pending browser validation on branch head `d9f1f38f54ea9cd0a8216f805daa9d415edc7b8d`.
 
-- full browser execution of OfflineAudioContext DSP tests
-- browser/headless UI checks in a verified runtime
-- independent reproduction of signal-domain measurements
+Verified in GitHub Actions run #8 (run ID `35627033315`):
+
+- Node.js lifecycle suite: PASS, 13/13
+- Chromium-based OfflineAudioContext / browser suite: PASS, 26/26
+- headless UI checks: PASS
+- validation artifact produced and retained
+- artifact digest: `sha256:2240a52c348e38c53923297f0f6e6f3a7c7f2e9b7186ad2b1ef124e870f950d6`
+
+Detailed CI evidence is recorded in `CI_VALIDATION.md`.
+
+Still pending or outside this CI scope:
+
+- independent reproduction outside the GitHub Actions environment
+- Firefox / Safari / mobile-browser validation
 - final review of provenance and ownership boundaries
 - final acceptance into Current Baseline
 
-The migration must therefore not be described as fully verified.
+The migration therefore has completed repository CI validation but is not yet accepted into the Current Baseline.
 
 ## Asset note
 
@@ -137,7 +148,7 @@ Before acceptance into Current Baseline, review should confirm at minimum:
 1. source and cleaned archive hashes remain preserved;
 2. repository diff matches the intended migration scope;
 3. no legacy identity terms remain in active implementation;
-4. unresolved browser/DSP verification is either completed or explicitly accepted as a limitation;
+4. browser/DSP CI evidence is reviewed, including `CI_VALIDATION.md`;
 5. provenance and third-party dependency status are acceptable;
 6. no sensitive material was unintentionally introduced;
 7. the exact final migration head is reviewed;
