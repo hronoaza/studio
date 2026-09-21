@@ -28,7 +28,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
