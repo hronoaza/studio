@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `candidate`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Source archive: `adaptive-mesh-main (2).zip`
 - Source archive SHA-256: `f14900ddb77852dbf3935562fdb5f73a051338ade1bb60a84f4d1fde59577c03`
 - Target repository: `hronoaza/studio`
@@ -82,3 +82,27 @@ blocking in Phase B. The internal computation is parallelized by a persistent
 worker pool. No API claim of non-blocking asynchronous completion is made.
 
 Final acceptance remains an explicit Root Operator decision.
+
+
+## Current repository validation
+
+Validated head:
+
+`45c9c5a490b4f73b4c125d3a5950c60dc1d33a25`
+
+GitHub Actions run #1, run ID `35643399828`:
+
+- Debug + ASan + UBSan: 3/3 PASS
+- assertion-enabled TSan: 3/3 PASS
+- runtime behavior: PASS
+- worker-pool lifecycle: PASS
+- topology transaction boundary: PASS
+- no sanitizer-reported error observed in reviewed logs
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
