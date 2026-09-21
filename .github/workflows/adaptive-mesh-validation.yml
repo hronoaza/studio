@@ -1,0 +1,62 @@
+name: Adaptive Mesh Validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/adaptive-mesh/**"
+      - ".github/workflows/adaptive-mesh-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/adaptive-mesh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Debug ASan and UBSan
+        run: >
+          cmake -S . -B build-debug
+          -DBUILD_TESTS=ON
+          -DCMAKE_BUILD_TYPE=Debug
+          -DSOAM_WARNINGS_AS_ERRORS=ON
+
+      - name: Build Debug
+        run: cmake --build build-debug --verbose -j2
+
+      - name: Test Debug ASan and UBSan
+        run: ctest --test-dir build-debug -V --output-on-failure --timeout 30
+
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/adaptive-mesh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure TSan
+        run: >
+          cmake -S . -B build-tsan
+          -DBUILD_TESTS=ON
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -UNDEBUG"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+          -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O1 -g"
+
+      - name: Build TSan
+        run: cmake --build build-tsan --verbose -j2
+
+      - name: Test TSan
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: ctest --test-dir build-tsan -V --output-on-failure --timeout 30
