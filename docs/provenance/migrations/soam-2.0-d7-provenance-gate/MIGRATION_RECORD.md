@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `candidate`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Source archive: `adaptive-mesh-main (2).zip`
 - Source archive SHA-256: `f14900ddb77852dbf3935562fdb5f73a051338ade1bb60a84f4d1fde59577c03`
 - Branch: `migration/soam-2.0-d7-provenance-gate`
@@ -65,3 +65,33 @@ connected to a positive live eligibility path.
 This is a blocking boundary, not a feature-completion claim.
 
 Final acceptance remains an explicit Root Operator decision.
+
+
+## Current repository validation
+
+Validated head:
+
+`fb2d63a3f40249e3197df625315e2bbcbcc2f4d0`
+
+GitHub Actions evidence:
+
+- D7 provenance gate run #1, ID `35646956852`: 6/6 PASS under ASan/UBSan and 6/6 PASS under TSan;
+- live evaluator regression run #3, ID `35646956772`: success;
+- runtime regression run #6, ID `35646956777`: success;
+- compile-fail synthetic provenance injection: correctly rejected;
+- no sanitizer-reported error observed in reviewed D7 logs.
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+## Current semantic status
+
+The negative D7 boundary is verified.
+
+The positive D7 path remains `evidence-blocked` until a separately evidenced
+production-native provenance producer is designed and accepted.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
