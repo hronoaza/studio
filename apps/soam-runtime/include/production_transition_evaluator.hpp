@@ -1,5 +1,7 @@
 #pragma once
 
+#include "production_relationship_locator.hpp"
+
 #include <cstddef>
 #include <memory>
 
@@ -10,11 +12,6 @@ class SpatialAdaptiveMesh;
 namespace detail {
 class ProductionTransitionEvaluationBindingState;
 }
-
-struct ProductionTransitionEvaluationLocator final {
-    std::size_t sourceNodeId;
-    std::size_t targetNodeId;
-};
 
 enum class ProductionTransitionEvaluation {
     no_request,
@@ -28,7 +25,7 @@ public:
     ProductionTransitionEvaluator& operator=(const ProductionTransitionEvaluator&) noexcept = default;
 
     [[nodiscard]] ProductionTransitionEvaluation evaluate(
-        const ProductionTransitionEvaluationLocator& locator) const;
+        const ProductionRelationshipLocator& locator) const;
 
 private:
     explicit ProductionTransitionEvaluator(
