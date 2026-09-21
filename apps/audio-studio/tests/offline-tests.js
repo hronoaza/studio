@@ -125,11 +125,8 @@ export async function runTests() {
       const intervention = (async () => {
         await ctx.suspend(2);
         const now = ctx.currentTime;
-        if (typeof gain.gain.cancelAndHoldAtTime === 'function') gain.gain.cancelAndHoldAtTime(now);
-        else {
-          gain.gain.cancelScheduledValues(now);
-          gain.gain.setValueAtTime(.45, now);
-        }
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(.45, now);
         gain.gain.linearRampToValueAtTime(0, now + .5);
         await ctx.resume();
       })();
