@@ -34,8 +34,18 @@ foreach(test_target
         runtime_tests
         worker_pool_lifecycle_tests
         topology_contract_tests
-        live_evaluator_tests)
+        live_evaluator_tests
+        d7_provenance_gate_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
 endforeach()
+
+
+add_test(
+    NAME reject_d7_public_provenance_injection
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d7_public_provenance_injection.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include)
