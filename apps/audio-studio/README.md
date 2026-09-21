@@ -4,9 +4,9 @@
 
 ## Статус перевірки
 
-Пакет містить виправлений рушій, UI, маніфест і тести. Пройдено 13 автоматичних перевірок конфігурації та життєвого циклу в Node.js із контрольованими замінниками AudioContext/AudioNode. Це не перевірка цифрової обробки звуку в браузері.
+Пакет містить виправлений рушій, UI, маніфест і тести. Node.js lifecycle suite пройшла 13/13 перевірок. Chromium / OfflineAudioContext browser suite пройшла 26/26 перевірок, а headless UI checks також завершилися успішно в GitHub Actions.
 
-Підготовлено 22 браузерні перевірки на OfflineAudioContext і вибрані асинхронні регресії. Їх тут **не виконано**: браузер Chromium відсутній, завантаження завершилося мережевими помилками. Візуальна перевірка та встановлення через маніфест також не виконані. Докладніше: [VALIDATION.md](../../docs/provenance/migrations/audio-studio-1.1/VALIDATION.md). Початкові фрагменти та виправлення зіставлено в [AUDIT.md](../../docs/provenance/migrations/audio-studio-1.1/AUDIT.md).
+Актуальні CI-докази для migration branch зафіксовано в [CI_VALIDATION.md](../../docs/provenance/migrations/audio-studio-1.1/CI_VALIDATION.md). Історичний pre-CI snapshot збережено в [VALIDATION.md](../../docs/provenance/migrations/audio-studio-1.1/VALIDATION.md). Початкові фрагменти та виправлення зіставлено в [AUDIT.md](../../docs/provenance/migrations/audio-studio-1.1/AUDIT.md).
 
 ## Запуск локально
 
@@ -94,7 +94,7 @@ npm test
 Для headless-рендерингу:
 
 ```bash
-npm install
+npm ci
 npx playwright install chromium
 npm run test:audio
 ```
