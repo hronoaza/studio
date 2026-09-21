@@ -122,7 +122,7 @@ void invalidateProductionTransitionEvaluationBinding(
 namespace AdaptiveMesh {
 
 ProductionTransitionEvaluation ProductionTransitionEvaluator::evaluate(
-    const ProductionTransitionEvaluationLocator& locator) const
+    const ProductionRelationshipLocator& locator) const
 {
     auto lease = detail::EvaluationLease::acquire(state_);
     if (!lease) {
