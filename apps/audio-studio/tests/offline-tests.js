@@ -95,6 +95,51 @@ export async function runTests() {
         probes:[1.99,2,2.05,2.15,2.3,2.31].map(t=>({t, sample:pre[Math.round(t*rate)]}))}));
       return {maxError};
     });
+    await test(`Primitive GainNode automation, ${rate} Hz`, async () => {
+      const ctx = new OfflineAudioContext(1, rate*3, rate);
+      const source = ctx.createConstantSource(), gain = ctx.createGain();
+      source.offset.setValueAtTime(1, 0);
+      gain.gain.setValueAtTime(0, 0);
+      gain.gain.linearRampToValueAtTime(.45, .8);
+      if (typeof gain.gain.cancelAndHoldAtTime === 'function') gain.gain.cancelAndHoldAtTime(2);
+      else {
+        gain.gain.cancelScheduledValues(2);
+        gain.gain.setValueAtTime(.45, 2);
+      }
+      gain.gain.linearRampToValueAtTime(0, 2.5);
+      source.connect(gain).connect(ctx.destination); source.start(0); source.stop(2.6);
+      const rendered = await ctx.startRendering(), data = rendered.getChannelData(0);
+      let maxError = 0, worst = null;
+      for (let i=0; i<2.6*rate; i++) {
+        const t=i/rate;
+        const expected=t<.8?.45*t/.8:t<2?.45:t<2.5?.45*(2.5-t)/.5:0;
+        const error=Math.abs(data[i]-expected);
+        if(error>maxError){maxError=error;worst={sample:i,time:t,observed:data[i],expected,error};}
+      }
+      assert(maxError < .00002, 'Primitive gain automation mismatch: '+JSON.stringify({maxError,worst}));
+      return {maxError,worst};
+    });
+    await test(`Primitive Oscillator frequency ramp, ${rate} Hz`, async () => {
+      const ctx = new OfflineAudioContext(1, rate*3, rate);
+      const osc = ctx.createOscillator();
+      const f0=MODES.M1, f1=MODES.M2;
+      osc.type='sine'; osc.frequency.setValueAtTime(f0,0);
+      osc.frequency.cancelScheduledValues(2);
+      osc.frequency.setValueAtTime(f0,2);
+      osc.frequency.linearRampToValueAtTime(f1,2.3);
+      osc.connect(ctx.destination); osc.start(0); osc.stop(2.9);
+      const rendered=await ctx.startRendering(), data=rendered.getChannelData(0);
+      let maxError=0,worst=null;
+      for(let i=rate;i<2.9*rate;i++){
+        const t=i/rate,u=t-2;
+        const cycles=u<0?f0*t:u<=.3?2*f0+f0*u+.5*(f1-f0)*u*u/.3:2*f0+.3*(f0+f1)/2+f1*(u-.3);
+        const expected=Math.sin(2*Math.PI*cycles);
+        const error=Math.abs(data[i]-expected);
+        if(error>maxError){maxError=error;worst={sample:i,time:t,observed:data[i],expected,error};}
+      }
+      assert(maxError < .002, 'Primitive oscillator ramp mismatch: '+JSON.stringify({maxError,worst}));
+      return {maxError,worst};
+    });
     await test(`Compressor transient measurement, ${rate} Hz`, async () => {
       const ctx = new OfflineAudioContext(2, rate*2, rate);
       const merger = ctx.createChannelMerger(2); merger.connect(ctx.destination);
