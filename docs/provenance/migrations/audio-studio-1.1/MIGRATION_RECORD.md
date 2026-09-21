@@ -78,13 +78,12 @@ Verified in GitHub Actions run #8 (run ID `35627033315`):
 - validation artifact produced and retained
 - artifact digest: `sha256:2240a52c348e38c53923297f0f6e6f3a7c7f2e9b7186ad2b1ef124e870f950d6`
 
-Detailed CI evidence is recorded in `CI_VALIDATION.md`.
+Detailed CI evidence is recorded in `CI_VALIDATION.md`. A later locked-dependency revalidation also passed in GitHub Actions run #14 on commit `b5d3148cb5d7a32508db87dc56ee3b854f34dbf0` using `npm ci`.
 
 Still pending or outside this CI scope:
 
 - independent reproduction outside the GitHub Actions environment
 - Firefox / Safari / mobile-browser validation
-- verified dependency lockfile generation and review
 - final review of provenance and ownership boundaries
 - final acceptance into Current Baseline
 
