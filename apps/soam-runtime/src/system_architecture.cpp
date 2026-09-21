@@ -1,4 +1,6 @@
 #include "system_architecture.hpp"
+#include "production_transition_evaluator.hpp"
+#include "detail/production_transition_evaluation_binding.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -210,6 +212,8 @@ struct SpatialAdaptiveMesh::Impl {
     std::vector<std::vector<BridgeStatus>> pendingBridgeStatuses;
 
     bool simulationBufferShapeDirty = true;
+    std::uint64_t nextRelationshipGeneration = 0;
+    std::uint64_t transitionStateVersion = 1;
 
     explicit Impl(std::size_t maxWorkers)
         : workerLimit(maxWorkers)
