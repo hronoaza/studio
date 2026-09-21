@@ -57,6 +57,18 @@ Source import and any test correction are separate migration steps from historic
 
 The source header declares GNU AGPLv3 or a commercial license upon request. This migration record preserves that declaration; it does not choose or alter the repository's project license.
 
+## Current repository validation
+
+After preserving the historical evidence, the migration corrected only the invalid geometric test assumption by changing the auto-connect radius from `3.0` to `3.5`.
+
+GitHub Actions run #1 (run ID `35635986219`) on commit `9e073b0ba7c52153ba98b02231500789935f9934` completed successfully:
+
+- Debug + ASan + UBSan: PASS
+- assertion-enabled TSan: PASS
+- both paths completed the registered test through `simulationStepAsync()`
+
+Detailed current evidence is recorded in `CI_VALIDATION.md`.
+
 ## Acceptance gate
 
 Before acceptance into Current Baseline:
@@ -64,8 +76,8 @@ Before acceptance into Current Baseline:
 1. preserve the evidence bundle identity and historical failures;
 2. import the source candidate separately from evidence;
 3. correct or replace the invalid geometric test assumption without changing the algorithm merely to satisfy the old assertion;
-4. run Debug with ASan+UBSan through `simulationStepAsync()`;
-5. run an assertion-enabled TSan path through `simulationStepAsync()`;
+4. review the completed Debug ASan+UBSan evidence in `CI_VALIDATION.md`;
+5. review the completed assertion-enabled TSan evidence in `CI_VALIDATION.md`;
 6. distinguish sanitizer evidence from ordinary Release success;
 7. review license and provenance boundaries;
 8. review the exact final migration head;
