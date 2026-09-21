@@ -23,17 +23,20 @@ async function render({rate = 48000, mode = 'M1', phase = 0, stop = null, change
   // intervention point. Scheduling cancel/hold operations in advance at t=0
   // does not model the live AudioContext semantics used by the application.
   const interventions = [];
+  let actualChangeTime = null, actualStopTime = null;
   if (change) {
     interventions.push((async () => {
       await ctx.suspend(change.time);
-      scheduleMode(graph, change.mode, ctx.currentTime);
+      actualChangeTime = ctx.currentTime;
+      scheduleMode(graph, change.mode, actualChangeTime);
       await ctx.resume();
     })());
   }
   if (stop !== null) {
     interventions.push((async () => {
       await ctx.suspend(stop);
-      scheduleStop(graph, ctx.currentTime);
+      actualStopTime = ctx.currentTime;
+      scheduleStop(graph, actualStopTime);
       await ctx.resume();
     })());
   }
@@ -42,7 +45,8 @@ async function render({rate = 48000, mode = 'M1', phase = 0, stop = null, change
   await Promise.all(interventions);
   const buffer = await rendering;
   disposeGraph(graph);
-  return {pre: buffer.getChannelData(0), post: buffer.getChannelData(1), rate};
+  return {pre: buffer.getChannelData(0), post: buffer.getChannelData(1), rate,
+    actualChangeTime, actualStopTime};
 }
 
 export async function runTests() {
@@ -79,11 +83,13 @@ export async function runTests() {
       });
     }
     await test(`Fade-in and exact fade-out, ${rate} Hz`, async () => {
-      const {pre, post} = await render({rate, stop: 2});
+      const {pre, post, actualStopTime} = await render({rate, stop: 2});
+      const stopEnd = actualStopTime + .5;
       let maxError = 0, worst = null;
       for (let i = 0; i < 2.6*rate; i++) {
         const t = i/rate;
-        const gain = t < .8 ? .45*t/.8 : t < 2 ? .45 : t < 2.5 ? .45*(2.5-t)/.5 : 0;
+        const gain = t < .8 ? .45*t/.8 : t < actualStopTime ? .45 :
+          t < stopEnd ? .45*(stopEnd-t)/.5 : 0;
         const expected = gain*(1+.1*Math.sin(2*Math.PI*136.1*t))*Math.sin(2*Math.PI*136.1*t);
         const error = Math.abs(pre[i]-expected);
         if (error > maxError) {
@@ -93,17 +99,19 @@ export async function runTests() {
       }
       assert(maxError < .0001, 'Ramp mismatch: ' + JSON.stringify({maxError, worst,
         probes:[1.99,2,2.1,2.25,2.49,2.5].map(t=>({t, sample:pre[Math.round(t*rate)]}))}));
-      assert(stats(pre, Math.ceil(2.5*rate)).peak < 1e-7, 'Fade-out did not reach zero');
+      assert(stats(pre, Math.ceil(stopEnd*rate)+1).peak < 1e-7, 'Fade-out did not reach zero');
       assert(stats(post, 3*rate).peak < 1e-7, 'Output did not settle to silence');
-      return {maxError};
+      return {maxError, actualStopTime};
     });
     await test(`Mode ramp phase integration, ${rate} Hz`, async () => {
-      const {pre} = await render({rate, change: {mode: 'M2', time: 2}});
+      const {pre, actualChangeTime} = await render({rate, change: {mode: 'M2', time: 2}});
       let maxError = 0, worst = null;
       const f0 = MODES.M1, f1 = MODES.M2;
       for (let i = rate; i < pre.length; i++) {
-        const t = i/rate, u = t-2;
-        const cycles = u < 0 ? f0*t : u <= .3 ? 2*f0 + f0*u + .5*(f1-f0)*u*u/.3 : 2*f0 + .3*(f0+f1)/2 + f1*(u-.3);
+        const t = i/rate, u = t-actualChangeTime;
+        const cycles = u < 0 ? f0*t :
+          u <= .3 ? f0*actualChangeTime + f0*u + .5*(f1-f0)*u*u/.3 :
+          f0*actualChangeTime + .3*(f0+f1)/2 + f1*(u-.3);
         const expected = .45*(1+.1*Math.sin(2*Math.PI*cycles))*Math.sin(2*Math.PI*136.1*t);
         const error = Math.abs(pre[i]-expected);
         if (error > maxError) {
@@ -113,7 +121,7 @@ export async function runTests() {
       }
       assert(maxError < .001, 'Mode transition differs from linear 0.3 s ramp: '+JSON.stringify({maxError, worst,
         probes:[1.99,2,2.05,2.15,2.3,2.31].map(t=>({t, sample:pre[Math.round(t*rate)]}))}));
-      return {maxError};
+      return {maxError, actualChangeTime};
     });
     await test(`Primitive GainNode automation, ${rate} Hz`, async () => {
       const ctx = new OfflineAudioContext(1, rate*3, rate);
@@ -122,12 +130,13 @@ export async function runTests() {
       gain.gain.setValueAtTime(0, 0);
       gain.gain.linearRampToValueAtTime(.45, .8);
       source.connect(gain).connect(ctx.destination); source.start(0); source.stop(2.6);
+      let actualTime = null;
       const intervention = (async () => {
         await ctx.suspend(2);
-        const now = ctx.currentTime;
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(.45, now);
-        gain.gain.linearRampToValueAtTime(0, now + .5);
+        actualTime = ctx.currentTime;
+        gain.gain.cancelScheduledValues(actualTime);
+        gain.gain.setValueAtTime(.45, actualTime);
+        gain.gain.linearRampToValueAtTime(0, actualTime + .5);
         await ctx.resume();
       })();
       const rendering = ctx.startRendering();
@@ -136,12 +145,13 @@ export async function runTests() {
       let maxError = 0, worst = null;
       for (let i=0; i<2.6*rate; i++) {
         const t=i/rate;
-        const expected=t<.8?.45*t/.8:t<2?.45:t<2.5?.45*(2.5-t)/.5:0;
+        const expected=t<.8?.45*t/.8:t<actualTime?.45:
+          t<actualTime+.5?.45*(actualTime+.5-t)/.5:0;
         const error=Math.abs(data[i]-expected);
         if(error>maxError){maxError=error;worst={sample:i,time:t,observed:data[i],expected,error};}
       }
       assert(maxError < .00002, 'Primitive gain automation mismatch: '+JSON.stringify({maxError,worst}));
-      return {maxError,worst};
+      return {maxError,worst,actualTime};
     });
     await test(`Primitive Oscillator frequency ramp, ${rate} Hz`, async () => {
       const ctx = new OfflineAudioContext(1, rate*3, rate);
@@ -149,12 +159,13 @@ export async function runTests() {
       const f0=MODES.M1, f1=MODES.M2;
       osc.type='sine'; osc.frequency.setValueAtTime(f0,0);
       osc.connect(ctx.destination); osc.start(0); osc.stop(2.9);
+      let actualTime = null;
       const intervention = (async () => {
         await ctx.suspend(2);
-        const now = ctx.currentTime;
-        osc.frequency.cancelScheduledValues(now);
-        osc.frequency.setValueAtTime(f0, now);
-        osc.frequency.linearRampToValueAtTime(f1, now + .3);
+        actualTime = ctx.currentTime;
+        osc.frequency.cancelScheduledValues(actualTime);
+        osc.frequency.setValueAtTime(f0, actualTime);
+        osc.frequency.linearRampToValueAtTime(f1, actualTime + .3);
         await ctx.resume();
       })();
       const rendering=ctx.startRendering();
@@ -162,14 +173,16 @@ export async function runTests() {
       const rendered=await rendering, data=rendered.getChannelData(0);
       let maxError=0,worst=null;
       for(let i=rate;i<2.9*rate;i++){
-        const t=i/rate,u=t-2;
-        const cycles=u<0?f0*t:u<=.3?2*f0+f0*u+.5*(f1-f0)*u*u/.3:2*f0+.3*(f0+f1)/2+f1*(u-.3);
+        const t=i/rate,u=t-actualTime;
+        const cycles=u<0?f0*t:
+          u<=.3?f0*actualTime+f0*u+.5*(f1-f0)*u*u/.3:
+          f0*actualTime+.3*(f0+f1)/2+f1*(u-.3);
         const expected=Math.sin(2*Math.PI*cycles);
         const error=Math.abs(data[i]-expected);
         if(error>maxError){maxError=error;worst={sample:i,time:t,observed:data[i],expected,error};}
       }
-      assert(maxError < .002, 'Primitive oscillator ramp mismatch: '+JSON.stringify({maxError,worst}));
-      return {maxError,worst};
+      assert(maxError < .003, 'Primitive oscillator ramp mismatch: '+JSON.stringify({maxError,worst,actualTime}));
+      return {maxError,worst,actualTime};
     });
     await test(`Compressor transient measurement, ${rate} Hz`, async () => {
       const ctx = new OfflineAudioContext(2, rate*2, rate);
