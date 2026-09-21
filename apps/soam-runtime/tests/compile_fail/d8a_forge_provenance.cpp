@@ -1,4 +1,4 @@
-#include "production_relationship_provenance.hpp"
+#include "production_relationship_provenance.hpp"\n#include "system_architecture.hpp"
 
 int main() {
     AdaptiveMesh::ProductionRelationshipProvenance forged{
