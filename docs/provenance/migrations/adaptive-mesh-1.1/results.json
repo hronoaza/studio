@@ -1,0 +1,21 @@
+{
+  "archive_sha256": "10087b027b0d8a97fb76c317f184246f18de1f44e144321876d31d04e2659ee7",
+  "archive_unchanged": true,
+  "archive_root": "adaptive-mesh-source-snapshot",
+  "commit": "Not verified. Directory-name suffix in the source archive is not treated as a commit identity because .git metadata was absent.",
+  "runs": [
+    {"name":"environment","exit_code":0},
+    {"name":"Debug-configure","exit_code":0},
+    {"name":"Debug-build","exit_code":0},
+    {"name":"Debug-list","exit_code":0},
+    {"name":"Debug-ctest","exit_code":8},
+    {"name":"Release-configure","exit_code":0},
+    {"name":"Release-build","exit_code":0},
+    {"name":"Release-list","exit_code":0},
+    {"name":"Release-ctest","exit_code":0},
+    {"name":"TSan-configure","exit_code":0},
+    {"name":"TSan-build","exit_code":0},
+    {"name":"TSan-list","exit_code":0},
+    {"name":"TSan-ctest","exit_code":8}
+  ]
+}
