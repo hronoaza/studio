@@ -1,0 +1,57 @@
+name: SOAM 2.0 Transition Eligibility Validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/soam-transition/**"
+      - ".github/workflows/soam-transition-eligibility-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gcc-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/soam-transition
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build-gcc
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          -DSOAM_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build-gcc --verbose -j2
+      - name: Test
+        run: ctest --test-dir build-gcc -V --output-on-failure --timeout 30
+
+  clang-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/soam-transition
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure
+        env:
+          CC: clang
+          CXX: clang++
+        run: >
+          cmake -S . -B build-clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          -DSOAM_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build-clang --verbose -j2
+      - name: Test
+        run: ctest --test-dir build-clang -V --output-on-failure --timeout 30
