@@ -1,0 +1,51 @@
+name: Audio Studio Validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/audio-studio/**"
+      - ".github/workflows/audio-studio-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/audio-studio
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/audio-studio/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run lifecycle tests
+        run: npm test
+
+      - name: Run browser DSP and UI validation
+        run: npm run test:audio
+
+      - name: Upload validation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-studio-validation
+          path: apps/audio-studio/test-results.json
+          if-no-files-found: warn
+          retention-days: 30
