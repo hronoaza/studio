@@ -1,5 +1,7 @@
 #pragma once
 
+#include "production_relationship_source_snapshot.hpp"
+
 #include <atomic>
 #include <cstddef>
 #include <memory>
@@ -12,6 +14,7 @@
 namespace AdaptiveMesh {
 
 class ProductionTransitionEvaluator;
+struct ProductionTransitionEvaluationLocator;
 namespace detail { class ProductionTransitionEvaluationBindingState; }
 
 void requireFinite(double value, const char* name);
@@ -106,8 +109,7 @@ public:
     [[nodiscard]] ProductionTransitionEvaluator
     productionTransitionEvaluator() const noexcept;
 
-    [[nodiscard]] std::optional<ProductionRelationshipProvenance>
-    captureProductionRelationshipProvenance(
+    [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>\n    captureProductionRelationshipSourceSnapshot(
         const ProductionTransitionEvaluationLocator& locator) const;
 
 private:
