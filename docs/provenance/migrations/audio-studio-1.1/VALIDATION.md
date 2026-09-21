@@ -1,3 +1,5 @@
+> Historical package-preparation snapshot. For the current repository CI result, see `CI_VALIDATION.md`. The later GitHub Actions run #8 passed the browser/headless suite for commit `d9f1f38f54ea9cd0a8216f805daa9d415edc7b8d`.
+
 # Статус валідації пакета 1.1
 
 | Перевірка | Результат |
