@@ -49,7 +49,8 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d7_public_provenance_injection.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include)
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D7 public provenance injection misuse")
 
 
 add_test(
@@ -58,4 +59,5 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_forge_source_snapshot.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include)
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8A forged source snapshot misuse")
