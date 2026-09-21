@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HRONOAZA · Audio Module 1.1</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0b1015">
+<link rel="icon" href="./audio-studio-sign.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./style.css">
+<main>
+  <header><img src="./audio-studio-sign.svg" width="48" height="48" alt=""><span>HRONOAZA <small>AUDIO MODULE / 1.1</small></span></header>
+  <h1>136.10 <span>Гц</span></h1>
+  <p>Синусоїдальна несуча · амплітудна модуляція</p>
+  <section aria-label="Моніторинг сигналу">
+    <div class="readouts"><span id="status" role="status">Зупинено</span><output id="meter">OK · 0.000</output></div>
+    <canvas id="scope" aria-label="Осцилограма після компресора">Для осцилограми потрібна підтримка Canvas.</canvas>
+  </section>
+  <div class="controls">
+    <label>Режим модуляції <select id="mode"><option value="M1">M1 · 136.10 Гц</option><option value="M2">M2 · 96.24 Гц</option><option value="M3">M3 · 78.58 Гц</option></select></label>
+    <button id="start">Запустити</button><button id="stop" disabled>Зупинити</button><button id="reset">Аварійний скид</button>
+  </div>
+  <p class="note">Почніть із низької системної гучності. Пік-метр показує цифрові семпли, а не фізичну гучність. Компресор не гарантує обмеження міжсемплових піків.</p>
+  <footer><a href="./offline-audio-test.html">Офлайн-тести без відтворення</a> · <a href="./README.md">Документація</a></footer>
+</main>
+<script type="module" src="./script.js"></script>
+</html>
