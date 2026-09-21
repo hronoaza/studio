@@ -29,7 +29,7 @@ ES-модулі потрібно відкривати через HTTP(S), а н�
 | index.html, style.css | Інтерфейс і стилі |
 | script.js | Прив’язка кнопок, Canvas, пік-метр; не створює аудіограф |
 | audio-engine.js | ES-модуль рушія та спільної фабрики аудіографа |
-| audio-studio-sign.svg, icons/ | Векторний знак і PNG 192×192 та 512×512 |
+| audio-studio-sign.svg, icons/ | Векторний знак і PNG 192×192 |
 | manifest.json | Назва, іконки, відносні start_url і scope |
 | offline-audio-test.html | Автоматичний рендеринг тестів у пам’ять без динаміків |
 | tests/offline-tests.js | Аналіз AM, DC, рамп і реакції компресора |
