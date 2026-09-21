@@ -36,7 +36,7 @@ foreach(test_target
         topology_contract_tests
         live_evaluator_tests
         d7_provenance_gate_tests
-        native_provenance_tests)
+        source_snapshot_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
@@ -53,9 +53,9 @@ add_test(
 
 
 add_test(
-    NAME reject_d8a_forged_provenance
+    NAME reject_d8a_forged_source_snapshot
     COMMAND bash
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_forge_provenance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_forge_source_snapshot.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include)
