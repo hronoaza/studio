@@ -974,7 +974,8 @@ std::size_t SpatialAdaptiveMesh::getNodeBridgesCount(
     return impl_->nodes.at(id).bridges.size();
 }
 
-std::optional<ProductionRelationshipSourceSnapshot>\nSpatialAdaptiveMesh::captureProductionRelationshipSourceSnapshot(
+std::optional<ProductionRelationshipSourceSnapshot>
+SpatialAdaptiveMesh::captureProductionRelationshipSourceSnapshot(
     const ProductionTransitionEvaluationLocator& locator) const
 {
     std::shared_lock lock(impl_->topologyMutex);
