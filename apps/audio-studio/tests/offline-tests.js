@@ -18,9 +18,29 @@ async function render({rate = 48000, mode = 'M1', phase = 0, stop = null, change
   const graph = createGraph(ctx, {mode, phase, destination: post});
   graph.outputGain.connect(merger, 0, 0);
   startGraph(graph, 0);
-  if (change) scheduleMode(graph, change.mode, change.time);
-  if (stop !== null) scheduleStop(graph, stop);
-  const buffer = await ctx.startRendering();
+
+  // Runtime automation must be issued when audio time actually reaches the
+  // intervention point. Scheduling cancel/hold operations in advance at t=0
+  // does not model the live AudioContext semantics used by the application.
+  const interventions = [];
+  if (change) {
+    interventions.push((async () => {
+      await ctx.suspend(change.time);
+      scheduleMode(graph, change.mode, ctx.currentTime);
+      await ctx.resume();
+    })());
+  }
+  if (stop !== null) {
+    interventions.push((async () => {
+      await ctx.suspend(stop);
+      scheduleStop(graph, ctx.currentTime);
+      await ctx.resume();
+    })());
+  }
+
+  const rendering = ctx.startRendering();
+  await Promise.all(interventions);
+  const buffer = await rendering;
   disposeGraph(graph);
   return {pre: buffer.getChannelData(0), post: buffer.getChannelData(1), rate};
 }
@@ -101,14 +121,21 @@ export async function runTests() {
       source.offset.setValueAtTime(1, 0);
       gain.gain.setValueAtTime(0, 0);
       gain.gain.linearRampToValueAtTime(.45, .8);
-      if (typeof gain.gain.cancelAndHoldAtTime === 'function') gain.gain.cancelAndHoldAtTime(2);
-      else {
-        gain.gain.cancelScheduledValues(2);
-        gain.gain.setValueAtTime(.45, 2);
-      }
-      gain.gain.linearRampToValueAtTime(0, 2.5);
       source.connect(gain).connect(ctx.destination); source.start(0); source.stop(2.6);
-      const rendered = await ctx.startRendering(), data = rendered.getChannelData(0);
+      const intervention = (async () => {
+        await ctx.suspend(2);
+        const now = ctx.currentTime;
+        if (typeof gain.gain.cancelAndHoldAtTime === 'function') gain.gain.cancelAndHoldAtTime(now);
+        else {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(.45, now);
+        }
+        gain.gain.linearRampToValueAtTime(0, now + .5);
+        await ctx.resume();
+      })();
+      const rendering = ctx.startRendering();
+      await intervention;
+      const rendered = await rendering, data = rendered.getChannelData(0);
       let maxError = 0, worst = null;
       for (let i=0; i<2.6*rate; i++) {
         const t=i/rate;
@@ -124,11 +151,18 @@ export async function runTests() {
       const osc = ctx.createOscillator();
       const f0=MODES.M1, f1=MODES.M2;
       osc.type='sine'; osc.frequency.setValueAtTime(f0,0);
-      osc.frequency.cancelScheduledValues(2);
-      osc.frequency.setValueAtTime(f0,2);
-      osc.frequency.linearRampToValueAtTime(f1,2.3);
       osc.connect(ctx.destination); osc.start(0); osc.stop(2.9);
-      const rendered=await ctx.startRendering(), data=rendered.getChannelData(0);
+      const intervention = (async () => {
+        await ctx.suspend(2);
+        const now = ctx.currentTime;
+        osc.frequency.cancelScheduledValues(now);
+        osc.frequency.setValueAtTime(f0, now);
+        osc.frequency.linearRampToValueAtTime(f1, now + .3);
+        await ctx.resume();
+      })();
+      const rendering=ctx.startRendering();
+      await intervention;
+      const rendered=await rendering, data=rendered.getChannelData(0);
       let maxError=0,worst=null;
       for(let i=rate;i<2.9*rate;i++){
         const t=i/rate,u=t-2;
