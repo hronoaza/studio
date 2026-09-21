@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `candidate`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Source archive: `adaptive-mesh-main (2).zip`
 - Source archive SHA-256: `f14900ddb77852dbf3935562fdb5f73a051338ade1bb60a84f4d1fde59577c03`
 - Target repository: `hronoaza/studio`
@@ -62,3 +62,24 @@ Phase A tests only the domain contracts:
 No runtime mutation capability exists in this phase.
 
 Final acceptance remains a separate operator decision.
+
+
+## Current repository validation
+
+Validated head:
+
+`3e4825eeb7560b8fff49f1853b571f1fee081fbd`
+
+GitHub Actions run #1, run ID `35642257137`:
+
+- GNU 13.3.0 + ASan + UBSan: 1/1 PASS
+- Clang 18.1.3 + ASan + UBSan: 1/1 PASS
+- no sanitizer-reported error observed in reviewed logs
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
