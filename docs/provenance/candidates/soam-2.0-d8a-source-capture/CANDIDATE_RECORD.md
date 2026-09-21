@@ -16,7 +16,7 @@ incarnation under the existing runtime topology/state lock.
 
 Public flow:
 
-`descriptive locator
+`ProductionRelationshipLocator
 -> coherent runtime capture
 -> ProductionRelationshipSourceSnapshot`
 
@@ -108,3 +108,28 @@ Before acceptance D8A must show:
 - coherent generation/version behavior across state changes.
 
 Final acceptance remains an explicit Root Operator decision.
+
+
+## Canonical addressing layer
+
+D8A and the live transition evaluator share the neutral descriptive type
+`ProductionRelationshipLocator`.
+
+The locator contains only:
+
+- source node ID;
+- target node ID.
+
+It contains no relationship generation, state version, transition direction,
+eligibility state, provenance semantics, or authority semantics.
+
+Relationship generation and state version are resolved by the runtime during
+capture. Therefore:
+
+`locator = what relationship is requested`
+
+while:
+
+`source snapshot = which live relationship incarnation was observed`
+
+The lower addressing type is independent of transition-evaluator semantics.
