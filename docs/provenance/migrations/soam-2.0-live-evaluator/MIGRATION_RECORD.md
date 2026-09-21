@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `candidate`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Source archive: `adaptive-mesh-main (2).zip`
 - Source archive SHA-256: `f14900ddb77852dbf3935562fdb5f73a051338ade1bb60a84f4d1fde59577c03`
 - Migration branch: `migration/soam-2.0-live-evaluator`
@@ -86,3 +86,24 @@ authority derivation and commit machinery.
 This migration extracts only the pre-authority live-evaluation portion.
 
 Final acceptance remains an explicit Root Operator decision.
+
+
+## Current repository validation
+
+Validated head:
+
+`1e5c17100cc768f653b2f6127808792ff940965e`
+
+GitHub Actions evidence:
+
+- runtime workflow run #4, ID `35645827357`: 4/4 PASS under ASan/UBSan and 4/4 PASS under TSan;
+- live evaluator workflow run #1, ID `35645827383`: 4/4 PASS under ASan/UBSan and 4/4 PASS under TSan;
+- no sanitizer-reported error observed in reviewed logs.
+
+Detailed evidence: `CI_VALIDATION.md`.
+
+Pre-acceptance review: `AUDIT.md`.
+
+## Remaining gate
+
+Explicit Root Operator acceptance is required before merge into Current Baseline.
