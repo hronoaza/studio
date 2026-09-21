@@ -73,3 +73,21 @@ It does not by itself establish:
 - final acceptance into the Current Baseline.
 
 Final baseline acceptance remains a separate explicit operator decision.
+
+
+## Locked dependency revalidation
+
+A later CI run revalidated the migration after committing the verified npm lockfile and switching dependency installation to `npm ci`.
+
+- Validated branch head: `b5d3148cb5d7a32508db87dc56ee3b854f34dbf0`
+- GitHub Actions run: `#14`
+- Run ID: `35627944407`
+- Job ID: `106426821177`
+- Conclusion: `success`
+- Dependency installation: `npm ci --ignore-scripts --no-audit --no-fund`
+- Browser / OfflineAudioContext validation: PASS
+- Lifecycle suite: PASS
+- Artifact ID: `10652994157`
+- Artifact digest: `sha256:75405ec542ea2f816f1344df279926302e0ed5318e27e10434430ca12cee893d`
+
+This run confirms that the committed dependency lockfile is usable and that the validated browser/DSP and lifecycle behavior still passes with the frozen npm dependency graph.
