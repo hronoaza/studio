@@ -84,6 +84,7 @@ Still pending or outside this CI scope:
 
 - independent reproduction outside the GitHub Actions environment
 - Firefox / Safari / mobile-browser validation
+- verified dependency lockfile generation and review
 - final review of provenance and ownership boundaries
 - final acceptance into Current Baseline
 
@@ -149,7 +150,7 @@ Before acceptance into Current Baseline, review should confirm at minimum:
 2. repository diff matches the intended migration scope;
 3. no legacy identity terms remain in active implementation;
 4. browser/DSP CI evidence is reviewed, including `CI_VALIDATION.md`;
-5. provenance and third-party dependency status are acceptable;
+5. provenance and third-party dependency status are acceptable, including `THIRD_PARTY.md`;
 6. no sensitive material was unintentionally introduced;
 7. the exact final migration head is reviewed;
 8. acceptance is explicitly authorized by the Root Operator.
