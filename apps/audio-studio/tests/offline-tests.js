@@ -60,29 +60,39 @@ export async function runTests() {
     }
     await test(`Fade-in and exact fade-out, ${rate} Hz`, async () => {
       const {pre, post} = await render({rate, stop: 2});
-      let maxError = 0;
+      let maxError = 0, worst = null;
       for (let i = 0; i < 2.6*rate; i++) {
         const t = i/rate;
         const gain = t < .8 ? .45*t/.8 : t < 2 ? .45 : t < 2.5 ? .45*(2.5-t)/.5 : 0;
         const expected = gain*(1+.1*Math.sin(2*Math.PI*136.1*t))*Math.sin(2*Math.PI*136.1*t);
-        maxError = Math.max(maxError, Math.abs(pre[i]-expected));
+        const error = Math.abs(pre[i]-expected);
+        if (error > maxError) {
+          maxError = error;
+          worst = {sample:i, time:t, observed:pre[i], expected, error};
+        }
       }
-      assert(maxError < .0001, 'Ramp mismatch: ' + maxError);
+      assert(maxError < .0001, 'Ramp mismatch: ' + JSON.stringify({maxError, worst,
+        probes:[1.99,2,2.1,2.25,2.49,2.5].map(t=>({t, sample:pre[Math.round(t*rate)]}))}));
       assert(stats(pre, Math.ceil(2.5*rate)).peak < 1e-7, 'Fade-out did not reach zero');
       assert(stats(post, 3*rate).peak < 1e-7, 'Output did not settle to silence');
       return {maxError};
     });
     await test(`Mode ramp phase integration, ${rate} Hz`, async () => {
       const {pre} = await render({rate, change: {mode: 'M2', time: 2}});
-      let maxError = 0;
+      let maxError = 0, worst = null;
       const f0 = MODES.M1, f1 = MODES.M2;
       for (let i = rate; i < pre.length; i++) {
         const t = i/rate, u = t-2;
         const cycles = u < 0 ? f0*t : u <= .3 ? 2*f0 + f0*u + .5*(f1-f0)*u*u/.3 : 2*f0 + .3*(f0+f1)/2 + f1*(u-.3);
         const expected = .45*(1+.1*Math.sin(2*Math.PI*cycles))*Math.sin(2*Math.PI*136.1*t);
-        maxError = Math.max(maxError, Math.abs(pre[i]-expected));
+        const error = Math.abs(pre[i]-expected);
+        if (error > maxError) {
+          maxError = error;
+          worst = {sample:i, time:t, observed:pre[i], expected, error};
+        }
       }
-      assert(maxError < .001, 'Mode transition differs from linear 0.3 s ramp: '+maxError);
+      assert(maxError < .001, 'Mode transition differs from linear 0.3 s ramp: '+JSON.stringify({maxError, worst,
+        probes:[1.99,2,2.05,2.15,2.3,2.31].map(t=>({t, sample:pre[Math.round(t*rate)]}))}));
       return {maxError};
     });
     await test(`Compressor transient measurement, ${rate} Hz`, async () => {
