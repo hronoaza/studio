@@ -106,6 +106,10 @@ public:
     [[nodiscard]] ProductionTransitionEvaluator
     productionTransitionEvaluator() const noexcept;
 
+    [[nodiscard]] std::optional<ProductionRelationshipProvenance>
+    captureProductionRelationshipProvenance(
+        const ProductionTransitionEvaluationLocator& locator) const;
+
 private:
     struct TransitionSnapshot {
         std::size_t sourceNodeId;
