@@ -15,7 +15,7 @@ void test_stability_and_shock() {
 
     assert(std::abs(mesh.getNodeState(0) - 1.618) < 1e-6);
 
-    mesh.autoConnectNearbyNodes(3.0); // Historical test assumption expects 0 and 2 to connect.
+    mesh.autoConnectNearbyNodes(3.5); // sqrt(12) ≈ 3.464, so 0 and 2 are inside this radius.
     assert(mesh.getNodeBridgesCount(0) == 2);
 
     mesh.injectExternalShock(0, 5.0);
