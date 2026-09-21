@@ -2,8 +2,8 @@
 
 ## Status
 
-- Migration stage: `source-identified`
-- Acceptance status: not accepted into Current Baseline
+- Migration stage: `verified`
+- Acceptance status: `acceptance-pending` — not accepted into Current Baseline
 - Target repository: `hronoaza/studio`
 - Migration branch: `migration/adaptive-mesh-1.1`
 - Base branch: `main`
@@ -69,9 +69,19 @@ GitHub Actions run #1 (run ID `35635986219`) on commit `9e073b0ba7c52153ba98b022
 
 Detailed current evidence is recorded in `CI_VALIDATION.md`.
 
+Expanded validation run #4 (run ID `35637241950`) on code/workflow head `105fe83137a61f21473612b9a008989489f386e6` also completed successfully:
+
+- Debug + ASan + UBSan: 2/2 CTest PASS
+- assertion-enabled TSan: 2/2 CTest PASS
+- invariant suite: PASS
+- 32-node × 100-step stress suite: PASS
+- no sanitizer-reported error observed in reviewed logs
+
+The final pre-acceptance review is recorded in `AUDIT.md`.
+
 ## Acceptance gate
 
-Before acceptance into Current Baseline:
+Pre-acceptance gates completed or reviewed:
 
 1. preserve the evidence bundle identity and historical failures;
 2. import the source candidate separately from evidence;
@@ -81,4 +91,4 @@ Before acceptance into Current Baseline:
 6. distinguish sanitizer evidence from ordinary Release success;
 7. review license and provenance boundaries;
 8. review the exact final migration head;
-9. require explicit Root Operator acceptance before merge.
+9. **remaining gate:** require explicit Root Operator acceptance before merge.
