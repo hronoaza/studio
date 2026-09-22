@@ -16,9 +16,12 @@ namespace AdaptiveMesh {
 
 class ProductionTransitionEvaluator;
 class ProductionBridgePersistenceRegistry;
+class ProductionTransitionLiveSnapshot;
+class ProductionTransitionLiveSnapshotSource;
 namespace detail {
 class ProductionTransitionEvaluationBindingState;
 class ProductionPersistenceRegistryState;
+class ProductionTransitionLiveSnapshotBindingState;
 }
 
 void requireFinite(double value, const char* name);
@@ -116,6 +119,9 @@ public:
     [[nodiscard]] ProductionBridgePersistenceRegistry
     productionBridgePersistenceRegistry() const noexcept;
 
+    [[nodiscard]] ProductionTransitionLiveSnapshotSource
+    productionTransitionLiveSnapshotSource() const noexcept;
+
     [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>
     captureProductionRelationshipSourceSnapshot(
         const ProductionRelationshipLocator& locator) const;
@@ -151,14 +157,22 @@ private:
     [[nodiscard]] bool revalidateTransitionSnapshot(
         const TransitionSnapshot& snapshot) const;
 
+    [[nodiscard]] std::optional<ProductionTransitionLiveSnapshot>
+    captureTransitionLiveValiditySnapshot(
+        std::size_t sourceNodeId,
+        std::size_t targetNodeId) const;
+
     struct Impl;
     std::unique_ptr<Impl> impl_;
     std::shared_ptr<detail::ProductionTransitionEvaluationBindingState>
         transitionEvaluationBinding_;
     std::shared_ptr<detail::ProductionPersistenceRegistryState>
         persistenceRegistryState_;
+    std::shared_ptr<detail::ProductionTransitionLiveSnapshotBindingState>
+        transitionLiveSnapshotBinding_;
 
     friend class ProductionTransitionEvaluator;
+    friend class ProductionTransitionLiveSnapshotSource;
     friend class detail::ProductionPersistenceRegistryState;
 };
 
