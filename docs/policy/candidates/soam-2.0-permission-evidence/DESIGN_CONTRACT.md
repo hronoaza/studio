@@ -1038,3 +1038,420 @@ No PermissionPrerequisiteEvidence is constructed.
 No prerequisite set is assembled.
 No eligibility decision is produced.
 No authority, capability, or execution surface is opened.
+
+
+## 56. Normative record-construction boundary
+
+`ProductionPermissionPrerequisiteRecord` is a trusted immutable value object.
+
+Its trust property is enforced by the type system, not by convention.
+
+Required production shape:
+
+```cpp
+class ProductionPermissionPrerequisiteRecord final {
+public:
+    ProductionPermissionPrerequisiteRecord(
+        const ProductionPermissionPrerequisiteRecord&) = default;
+    ProductionPermissionPrerequisiteRecord& operator=(
+        const ProductionPermissionPrerequisiteRecord&) = default;
+
+    const PermissionDecisionId& decisionId() const noexcept;
+    const ProductionTransitionRequestBinding& binding() const noexcept;
+    const PermissionAttestationId& attestationId() const noexcept;
+    const PermissionIssuerId& issuerId() const noexcept;
+    const PermissionPolicySnapshotId& policySnapshotId() const noexcept;
+    bool satisfied() const noexcept;
+
+private:
+    ProductionPermissionPrerequisiteRecord(/* trusted fields */);
+
+    friend class ProductionPermissionVerifier;
+};
+```
+
+Normative requirements:
+
+- no public default constructor;
+- no public raw-field constructor;
+- no aggregate initialization;
+- no public setters;
+- class is `final`;
+- all externally observable state is read-only;
+- arbitrary caller code cannot synthesize a trusted record.
+
+Compile-fail tests must prove these properties.
+
+## 57. D -> C1 conversion is total and non-decision-bearing
+
+The D -> C1 conversion exists because the trusted D record carries richer
+provenance than the intentionally narrow C1 permission evidence type.
+
+Therefore the two types are not aliases.
+
+The conversion is nevertheless a total mapping:
+
+```cpp
+class ProductionPermissionC1Adapter final {
+public:
+    [[nodiscard]]
+    ProductionPermissionC1Prerequisite
+    convert(
+        const ProductionPermissionPrerequisiteRecord& record) const noexcept;
+};
+```
+
+Normative mapping:
+
+```text
+record.binding()   -> PermissionPrerequisiteEvidence.context()
+record.satisfied() -> PermissionPrerequisiteEvidence.satisfied()
+```
+
+The adapter MUST NOT:
+
+- return optional/variant/rejection;
+- verify the signature again;
+- inspect issuer trust;
+- inspect policy currency;
+- inspect live state;
+- inspect freshness/revalidation;
+- inspect invariant/resilience;
+- evaluate eligibility;
+- invoke authority or execution logic.
+
+If any future requirement makes conversion conditional, that change creates a
+new decision layer and must not be added silently to this adapter.
+
+The phrase "conversion MUST NOT fail" is therefore a design property of the
+well-formed trusted input type plus this total mapping, not a claim that C++ can
+survive arbitrary memory corruption or undefined behavior.
+
+## 58. Policy snapshot identity is provenance, not post-verification enforcement
+
+For an already-created `ProductionPermissionPrerequisiteRecord`,
+`PermissionPolicySnapshotId` records which accepted verification policy
+established the decision.
+
+It is provenance.
+
+It is not a dynamic "must still be current" enforcement gate.
+
+Therefore:
+
+```text
+record created under accepted policy snapshot P
++ later policy rotation to P2
+!= automatic invalidation of record
+```
+
+Future attestation verification uses the then-active accepted permission policy.
+
+An already-created trusted record remains evidence of the completed verification
+decision for its exact request and policy provenance.
+
+D does not perform a later "policy must still be current" check.
+
+Request epoch freshness remains a separate A1 concern.
+
+Key/policy rotation is expressed through a new permission-policy revision and
+affects future verification decisions.
+
+## 59. Exact canonical byte layout
+
+PermissionAttestationV1 signed payload is a fixed-size byte sequence.
+
+The domain separator is exactly the following 31 bytes:
+
+```text
+ASCII("SOAM:PERMISSION-ATTESTATION:V1") || 0x00
+```
+
+There is no C-string interpretation at the cryptographic boundary.
+
+The complete V1 layout is exactly:
+
+```text
+offset  size  field
+0       31    domainSeparator
+31       2    formatMajor               u16 little-endian
+33       2    formatMinor               u16 little-endian
+35      16    attestationId             raw bytes
+51      16    issuerId                  raw bytes
+67      16    requestDecisionId         raw bytes
+83       8    sourceNodeId              u64 little-endian
+91       8    targetNodeId              u64 little-endian
+99       8    relationshipGeneration    u64 little-endian
+107      1    direction                 u8
+108      8    transitionClass           u64 little-endian
+116      8    stateVersion              u64 little-endian
+124      1    decision                  u8
+125     16    permissionPolicyId         raw bytes
+141      2    permissionPolicyMajor      u16 little-endian
+143      2    permissionPolicyMinor      u16 little-endian
+```
+
+Total signed payload length:
+
+```text
+145 bytes exactly
+```
+
+No padding.
+No host-endian encoding.
+No native struct serialization.
+No JSON.
+No UTF-8 payload fields in V1.
+No optional fields.
+No trailing extension area.
+
+## 60. Exact-size parser rule
+
+The V1 parser is exact-size.
+
+Normative rule:
+
+```text
+input length == 145 bytes
+```
+
+Anything else is malformed.
+
+Therefore:
+
+- 144 bytes or fewer => `AttestationMalformed`;
+- 146 bytes or more => `AttestationMalformed`;
+- trailing bytes are rejected, never ignored;
+- missing bytes are rejected, never default-filled;
+- unknown enum discriminants are rejected;
+- wrong domain separator bytes are rejected.
+
+The signature bytes are transported separately from the 145-byte signed payload
+or in a higher-level fixed envelope whose exact size is independently specified.
+
+## 61. Frozen interoperability vectors are mandatory
+
+D V1 is not implementation-complete without frozen cryptographic test vectors.
+
+At minimum the accepted policy/test provenance must include one positive vector
+containing:
+
+- every logical field value;
+- exact 145-byte canonical payload hex;
+- exact 32-byte Ed25519 test public key;
+- exact 64-byte Ed25519 signature;
+- expected verification result = true.
+
+The key used for interoperability vectors MUST be an explicitly designated test
+key and MUST NOT be the production Root Operator permission key.
+
+Required negative vectors include at least:
+
+- one changed stateVersion byte -> verification false;
+- changed direction -> verification false;
+- changed issuerId -> verification false;
+- changed domain separator byte -> verification false;
+- changed signature byte -> verification false;
+- truncated payload -> parse failure;
+- payload with trailing byte -> parse failure.
+
+These vectors define cross-implementation compatibility, not merely unit-test
+convenience.
+
+## 62. STOP D contract
+
+D STOP means exactly:
+
+```text
+permission verification completed
+-> trusted request-bound ProductionPermissionPrerequisiteRecord exists
+-> ready only for total D -> C1 conversion
+```
+
+D STOP does NOT mean:
+
+- ready for authority;
+- ready for execution;
+- ready for a human approval step;
+- eligible for authority consideration.
+
+The only permitted downstream semantic transition from D is through the narrow
+D -> C1 conversion into `PermissionPrerequisiteEvidence`.
+
+## 63. STOP C1 contract
+
+C1 already produces an immutable
+`ProductionTransitionEligibilityDecision` through a private constructor
+controlled by `ProductionTransitionEligibilityEvaluator`.
+
+That pattern is normative for the C1 boundary.
+
+Authority must consume the trusted C1 decision artifact, not independently
+reassemble or re-evaluate the five prerequisite channels.
+
+Only:
+
+```text
+ProductionTransitionEligibilityDecision {
+    eligibility = eligible_for_authority_consideration,
+    exact request binding
+}
+```
+
+may proceed to a future Authority layer.
+
+C1 STOP does NOT mean ready for execution.
+
+It means only:
+
+```text
+all accepted prerequisite channels passed
+-> request is eligible to be considered by explicit Authority
+```
+
+## 64. Eligibility artifacts are immutable, not consumable
+
+`ProductionTransitionEligibilityDecision` is an immutable decision artifact.
+
+It is not the replay-consumption object.
+
+Likewise, D permission records are immutable and replayable as evidence for the
+same exact request.
+
+Single-use semantics belong later:
+
+```text
+C1 eligibility decision
+-> authority decision
+-> single-use execution capability
+-> atomic execution transaction
+```
+
+The eventual execution boundary must atomically bind:
+
+```text
+current stateVersion validation
++ exact authority/request lineage validation
++ capability not-consumed check
++ transition mutation
++ publication of new stateVersion
++ capability consumption
+```
+
+as one commit context.
+
+No intermediate durable state may expose "consumed but mutation not committed"
+or "mutation committed but capability still reusable".
+
+This is a future Authority/Execution contract and is not implemented by D.
+
+## 65. Ceremony document and key-generation ordering
+
+The Root Operator issuer ceremony is a separate security artifact from the
+permission verification policy.
+
+The ceremony procedure MUST exist before production key generation.
+
+The procedure specifies prospectively:
+
+- approved generation environment;
+- approved generation software/version;
+- entropy/source requirements;
+- verification steps;
+- handling and transfer rules;
+- private-key storage model;
+- backup/recovery rules;
+- compromise response;
+- rotation process;
+- assignment process for stable `PermissionIssuerId`.
+
+The procedure does not contain a production public key that does not yet exist.
+
+After generation, a separate policy/provenance record binds:
+
+```text
+PermissionIssuerId
++
+generated Ed25519 public key
++
+IssuerCeremonyDocumentDigestAlgorithm
++
+IssuerCeremonyDocumentDigest
+```
+
+This two-artifact structure demonstrates that the accepted key is claimed to
+have been generated under a pre-existing procedure.
+
+The ceremony-document digest provides document identity/integrity binding.
+
+It does not, by itself, prove temporal ordering. Strong temporal proof would
+require an external timestamp/notarization/transparency mechanism and is not
+claimed by V1.
+
+## 66. Issuer identity remains independent from key material
+
+`PermissionIssuerId` is assigned, not derived from the Ed25519 public key.
+
+Normative invariant:
+
+```text
+PermissionIssuerId != hash(publicKey)
+```
+
+and no deterministic public-key derivation rule defines issuer identity.
+
+This permits:
+
+```text
+same logical issuer
++ rotated credential
++ new permission-policy revision
+```
+
+without changing logical issuer identity.
+
+## 67. Remaining normative gates
+
+After the preceding review, the remaining independent production choices are:
+
+### D1/D3 combined gate
+
+Accept or reject:
+
+```text
+signature profile = Ed25519
+verification provider = libsodium
+linkage = PRIVATE to soam_transition_permission
+production module = verifier-only
+```
+
+### D2 ceremony gate
+
+Before any production key generation:
+
+- accept Root Operator Issuer Ceremony V1;
+- assign stable opaque PermissionIssuerId;
+- approve private-key custody model;
+- then generate keypair externally;
+- then bind public key + ceremony document digest into a new accepted permission
+  policy provenance record.
+
+No production key is to be generated as part of PR #32.
+
+## 68. Final pre-merge design condition
+
+PR #32 may become design-mergeable once the following are all explicit in the
+review record:
+
+- unforgeable immutable D record;
+- total non-decision-bearing D -> C1 conversion;
+- policySnapshotId provenance semantics;
+- exact 145-byte canonical payload;
+- exact-size parser;
+- mandatory frozen interoperability vectors;
+- exact STOP D contract;
+- exact STOP C1 contract;
+- Authority/Execution consumption deferred to an atomic later layer;
+- two-artifact ceremony/key provenance model.
+
+Executable D remains blocked until D1/D3 and D2 are separately accepted.
