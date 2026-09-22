@@ -6,8 +6,9 @@
 - Document class: design-contract candidate
 - Executable implementation: none
 - Current Baseline effect: none
-- Acceptance status: design-review revised / acceptance pending
-- Upstream dependency: D8A Source Capture candidate (PR #8)
+- Acceptance status: baseline-aligned / acceptance review pending
+- Upstream dependency: accepted D8A Source Capture in Current Baseline
+  (`379cd2e2cf17eb7181629945e670f7923ba662ce`, merged from PR #8)
 - Downstream dependency: future D8C Provenance Admissibility
 - Authority effect: none
 - Incorporated review: `DESIGN_REVIEW_1.md`
@@ -598,12 +599,21 @@ Envelope publication is evidence creation, not production-state commit.
 
 ### 17.1 SourceCaptureId
 
-Ownership: D8A.
+Ownership: accepted D8A Current Baseline.
 
-The D8A amendment must define the uniqueness scope.
+Accepted upstream properties:
 
-The identity must not be a process-local counter unless the domain itself
-includes a stable producer-instance identity preventing reuse after restart.
+- 128-bit / 16 opaque bytes;
+- generated at D8A source-capture boundary;
+- OS-backed CSPRNG;
+- all-zero reserved invalid;
+- finite fail-closed retry;
+- repeated successful recaptures receive distinct IDs;
+- copy/move preserves capture identity;
+- not a capability, authentication token, digest or provenance-item identity.
+
+D8B preserves the accepted 16 bytes exactly and does not remint or reinterpret
+them.
 
 ### 17.2 ProvenanceItemId
 
@@ -872,28 +882,26 @@ The D8A snapshot is the lock-boundary handoff.
 
 ---
 
-## 27. Required D8A amendment before D8B implementation
+## 27. Accepted D8A upstream boundary
 
-This revised D8B design reveals one upstream requirement:
+The required upstream amendment is now accepted in Current Baseline at:
 
-> D8A must carry a restricted-origin `SourceCaptureId` minted at the coherent
-> capture event.
+`379cd2e2cf17eb7181629945e670f7923ba662ce`
 
-This amendment does not turn D8A into provenance.
+D8A provides a restricted-origin `SourceCaptureId` minted at the coherent
+capture boundary.
 
 D8A remains:
 
 ```text
 relationship locator
 -> coherent source capture
--> immutable raw source facts + capture identity
+-> immutable raw source facts + SourceCaptureId
 -> STOP
 ```
 
-The amendment should be reviewed separately before PR #8 changes.
-
-Until that occurs, D8B remains a design candidate and must not be implemented
-against an invented D8B-side acquisition identity.
+D8B therefore consumes the accepted D8A identity directly. It must not invent a
+D8B-side acquisition identity.
 
 ---
 
@@ -944,14 +952,17 @@ These exclusions prevent D8B from becoming a monolithic provenance layer.
 
 Before D8B implementation begins:
 
-1. D8A acceptance state must be resolved;
-2. D8A capture-identity amendment must be reviewed;
-3. this revised D8B contract must be accepted;
-4. exact identity uniqueness domains must be selected;
-5. exact canonical byte layout must be accepted;
-6. SHA-256/domain-separator bytes must be accepted;
-7. source-binding/source-record-reference semantics must be accepted;
-8. normative test vectors must be accepted.
+1. this revised D8B contract must be accepted;
+2. `ProvenanceItemId` generation/uniqueness domain must be selected;
+3. exact canonical byte layout must be accepted;
+4. SHA-256/domain-separator bytes must be accepted;
+5. source-binding/source-record-reference semantics must be accepted;
+6. normative test vectors must be accepted;
+7. production schema/producer/dependency registries must be fixed;
+8. restricted-origin C++ API and compile-fail misuse design must be accepted.
+
+The former D8A acceptance and capture-identity gates are satisfied by Current
+Baseline `379cd2e2cf17eb7181629945e670f7923ba662ce`.
 
 Before D8B merges into Current Baseline:
 
