@@ -11,13 +11,17 @@ option(SOAM_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
 add_library(soam_runtime STATIC
     src/system_architecture.cpp
-    src/production_transition_evaluator.cpp)
+    src/production_transition_evaluator.cpp
+    src/source_capture_id.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 target_include_directories(soam_runtime PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 target_link_libraries(soam_runtime PUBLIC Threads::Threads)
+if(WIN32)
+    target_link_libraries(soam_runtime PRIVATE bcrypt)
+endif()
 target_compile_features(soam_runtime PUBLIC cxx_std_20)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -42,6 +46,8 @@ foreach(test_target
     add_test(NAME run_${test_target} COMMAND ${test_target})
 endforeach()
 
+target_include_directories(source_snapshot_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_test(
     NAME reject_d7_public_provenance_injection
@@ -61,3 +67,31 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D8A forged source snapshot misuse")
+
+
+add_test(
+    NAME reject_d8a_default_construct_source_capture_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_default_construct_source_capture_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8A SourceCaptureId default construction misuse")
+
+add_test(
+    NAME reject_d8a_construct_source_capture_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_construct_source_capture_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8A SourceCaptureId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8a_mutate_source_capture_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8a_mutate_source_capture_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8A SourceCaptureId mutation misuse")
