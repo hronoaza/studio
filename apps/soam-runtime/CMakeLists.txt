@@ -28,11 +28,14 @@ set(SOAM_D8B_IMPLEMENTATION_MANIFEST
     "SOAM:D8B:IMPLEMENTATION-MANIFEST:V1\npublic=${SOAM_D8B_PUBLIC_SHA}\ninternal=${SOAM_D8B_INTERNAL_SHA}\nsource=${SOAM_D8B_SOURCE_SHA}\n")
 string(SHA256 SOAM_D8B_IMPLEMENTATION_REVISION_SHA
     "${SOAM_D8B_IMPLEMENTATION_MANIFEST}")
-target_compile_definitions(soam_runtime PRIVATE
-    SOAM_D8B_IMPLEMENTATION_REVISION_SHA="\"${SOAM_D8B_IMPLEMENTATION_REVISION_SHA}\"")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/d8b_implementation_revision.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/d8b_implementation_revision.hpp"
+    @ONLY)
 
-target_include_directories(soam_runtime PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(soam_runtime
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 target_link_libraries(soam_runtime PUBLIC Threads::Threads)
 if(WIN32)
