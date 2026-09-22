@@ -190,6 +190,27 @@ int main() {
     requireBits(success.confidence().value(),
         0x3ff0000000000000ULL);
 
+    // A completed policy mismatch is a typed rejection, not nullopt.
+    auto wrongRevision=policyA->descriptor().implementationRevision;
+    wrongRevision[0]^=0xffU;
+    const auto wrongPolicy=detail::VersionedInterpretationTestAccess::makePolicy(
+        policyA->snapshotId().bytes(),
+        policyA->descriptor().policyId.bytes(),
+        policyA->descriptor().majorVersion,
+        policyA->descriptor().minorVersion,
+        policyA->descriptor().implementationRevisionKind,
+        wrongRevision,
+        policyA->distanceAttenuationCoefficient(),
+        policyA->directional());
+    const auto policyRejected=interpreter.interpret(
+        admittedForward,wrongPolicy);
+    require(policyRejected.has_value());
+    require(std::holds_alternative<ProductionInterpretationRejection>(
+        *policyRejected));
+    require(std::get<ProductionInterpretationRejection>(*policyRejected)
+        .primaryReason()==
+            ProductionInterpretationReason::PolicyRevisionUnrecognized);
+
     const auto repeated=interpreter.interpret(
         admittedForward,*policyA);
     require(repeated.has_value());
