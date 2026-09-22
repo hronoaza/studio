@@ -1,5 +1,8 @@
 #pragma once
 
+#include "production_relationship_locator.hpp"
+#include "production_relationship_source_snapshot.hpp"
+
 #include <atomic>
 #include <cstddef>
 #include <memory>
@@ -105,6 +108,10 @@ public:
 
     [[nodiscard]] ProductionTransitionEvaluator
     productionTransitionEvaluator() const noexcept;
+
+    [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>
+    captureProductionRelationshipSourceSnapshot(
+        const ProductionRelationshipLocator& locator) const;
 
 private:
     struct TransitionSnapshot {

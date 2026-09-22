@@ -1,0 +1,57 @@
+name: SOAM 2.0 D8A Source Capture Validation
+
+on:
+  pull_request:
+    paths:
+      - "apps/soam-runtime/**"
+      - ".github/workflows/soam-d8a-source-capture-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/soam-runtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build-debug
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          -DSOAM_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build-debug --verbose -j2
+      - name: Test
+        run: ctest --test-dir build-debug -V --output-on-failure --timeout 60
+
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/soam-runtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build-tsan
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -UNDEBUG"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+          -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O1 -g"
+          -DSOAM_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build-tsan --verbose -j2
+      - name: Test
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: ctest --test-dir build-tsan -V --output-on-failure --timeout 60

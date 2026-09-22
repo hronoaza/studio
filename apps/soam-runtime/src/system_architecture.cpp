@@ -1,6 +1,7 @@
 #include "system_architecture.hpp"
 #include "production_transition_evaluator.hpp"
 #include "detail/production_transition_evaluation_binding.hpp"
+#include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -972,6 +973,58 @@ std::size_t SpatialAdaptiveMesh::getNodeBridgesCount(
 {
     std::shared_lock lock(impl_->topologyMutex);
     return impl_->nodes.at(id).bridges.size();
+}
+
+std::optional<ProductionRelationshipSourceSnapshot>
+SpatialAdaptiveMesh::captureProductionRelationshipSourceSnapshot(
+    const ProductionRelationshipLocator& locator) const
+{
+    const auto captureIdBytes =
+        detail::tryGenerateSourceCaptureIdBytes();
+    if (!captureIdBytes.has_value()) {
+        return std::nullopt;
+    }
+
+    SourceCaptureId captureId{*captureIdBytes};
+
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (locator.sourceNodeId >= impl_->nodes.size() ||
+        locator.targetNodeId >= impl_->nodes.size() ||
+        locator.sourceNodeId == locator.targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& source = impl_->nodes[locator.sourceNodeId];
+    const auto& target = impl_->nodes[locator.targetNodeId];
+
+    const auto found = std::find_if(
+        source.bridges.begin(),
+        source.bridges.end(),
+        [&locator](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(locator.targetNodeId);
+        });
+
+    if (found == source.bridges.end()) {
+        return std::nullopt;
+    }
+
+    return ProductionRelationshipSourceSnapshot{
+        std::move(captureId),
+        locator.sourceNodeId,
+        locator.targetNodeId,
+        found->generation,
+        impl_->transitionStateVersion,
+        found->distance,
+        found->orientationWeight,
+        found->capacity,
+        found->status,
+        source.state.load(),
+        target.state.load(),
+        source.healthIndex.load(),
+        target.healthIndex.load()
+    };
 }
 
 ProductionTransitionEvaluator
