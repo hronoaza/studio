@@ -464,6 +464,7 @@ ProductionProvenanceEnvelope::ProductionProvenanceEnvelope(
     double targetState,
     double sourceHealth,
     double targetHealth,
+    ProvenanceMetadataView metadata,
     CanonicalDigest canonicalDigest,
     std::vector<std::uint8_t> canonicalBytes) noexcept
     : provenanceItemId_(std::move(provenanceItemId)),
@@ -480,6 +481,7 @@ ProductionProvenanceEnvelope::ProductionProvenanceEnvelope(
       targetState_(targetState),
       sourceHealth_(sourceHealth),
       targetHealth_(targetHealth),
+      metadata_(std::move(metadata)),
       canonicalDigest_(std::move(canonicalDigest)),
       canonicalBytes_(std::move(canonicalBytes))
 {
@@ -508,9 +510,48 @@ ProductionProvenanceEnvelopeProducer::produce(
     const std::uint8_t statusTag = detail::bridgeStatusTag(snapshot.bridgeStatus());
     if (statusTag > 3U) return std::nullopt;
 
-    detail::CanonicalEnvelopeInput input{
+    std::vector<ProvenanceDependencyDescriptor> metadataDependencies;
+    metadataDependencies.reserve(dependencies.size());
+    for (const auto& dependency : dependencies) {
+        metadataDependencies.push_back(ProvenanceDependencyDescriptor{
+            dependency.kind,
+            dependency.id,
+            dependency.major,
+            dependency.minor,
+            dependency.revisionKind,
+            dependency.revisionDigest
+        });
+    }
+
+    ProvenanceMetadataView metadata{
         detail::kSchemaId, 1, 0, 1,
         detail::kProducerId, 1, 0, 1, detail::kImplementationRevision,
+        std::move(metadataDependencies)
+    };
+
+    std::vector<detail::CanonicalDependencyInput> canonicalDependencies;
+    canonicalDependencies.reserve(metadata.dependencies().size());
+    for (const auto& dependency : metadata.dependencies()) {
+        canonicalDependencies.push_back(detail::CanonicalDependencyInput{
+            dependency.kind,
+            dependency.dependencyId,
+            dependency.versionMajor,
+            dependency.versionMinor,
+            dependency.revisionKind,
+            dependency.revisionDigest
+        });
+    }
+
+    detail::CanonicalEnvelopeInput input{
+        metadata.schemaId(),
+        metadata.schemaMajor(),
+        metadata.schemaMinor(),
+        metadata.canonicalEncodingVersion(),
+        metadata.producerId(),
+        metadata.producerMajor(),
+        metadata.producerMinor(),
+        metadata.implementationRevisionKind(),
+        metadata.implementationRevision(),
         *itemBytes,
         snapshot.sourceCaptureId().bytes(),
         static_cast<std::uint64_t>(snapshot.sourceNodeId()),
@@ -525,7 +566,7 @@ ProductionProvenanceEnvelopeProducer::produce(
         snapshot.targetState(),
         snapshot.sourceHealth(),
         snapshot.targetHealth(),
-        std::move(dependencies)
+        std::move(canonicalDependencies)
     };
 
     auto canonicalBytes = detail::encodeCanonicalEnvelopeV1(input);
@@ -550,6 +591,7 @@ ProductionProvenanceEnvelopeProducer::produce(
         snapshot.targetState(),
         snapshot.sourceHealth(),
         snapshot.targetHealth(),
+        std::move(metadata),
         CanonicalDigest{digestBytes},
         std::move(*canonicalBytes)
     };
