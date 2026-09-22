@@ -549,6 +549,11 @@ public:
 private:
     struct Impl;
 
+    [[nodiscard]] std::optional<ProductionPersistenceObservationResult>
+    rejectWithoutMutation(
+        const ProductionBridgePolicyEvidence& evidence,
+        ProductionPersistenceReason reason);
+
     ProductionBridgePersistenceStream(
         PersistenceStreamInstanceId instanceId,
         ProductionPersistenceStreamKey key,
@@ -575,11 +580,14 @@ public:
 
 private:
     ProductionPersistenceStreamHandle(
+        std::shared_ptr<detail::ProductionPersistenceRegistryState> registryState,
         std::shared_ptr<detail::ProductionPersistenceStreamBindingState> state,
         PersistenceStreamInstanceId instanceId) noexcept
-        : state_(std::move(state)),
+        : registryState_(std::move(registryState)),
+          state_(std::move(state)),
           instanceId_(std::move(instanceId)) {}
 
+    std::shared_ptr<detail::ProductionPersistenceRegistryState> registryState_;
     std::shared_ptr<detail::ProductionPersistenceStreamBindingState> state_;
     PersistenceStreamInstanceId instanceId_;
 
