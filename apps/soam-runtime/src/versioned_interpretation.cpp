@@ -316,13 +316,6 @@ VersionedProductionInterpreter::interpret(
     const AdmissibleProductionProvenance& provenance,
     const InterpretationPolicySnapshot& policy) const
 {
-    if(!policyIsCurrent(policy)) {
-        return std::nullopt;
-    }
-    if(!upstreamLineageIsConsistent(provenance)) {
-        return std::nullopt;
-    }
-
     const auto decisionBytes=detail::tryGenerateD8DOpaqueIdBytes();
     if(!decisionBytes.has_value()) return std::nullopt;
     InterpretationDecisionId decisionId{*decisionBytes};
@@ -342,6 +335,15 @@ VersionedProductionInterpreter::interpret(
             }
         };
     };
+
+    if(!policyIsCurrent(policy)) {
+        return reject(
+            ProductionInterpretationReason::PolicyRevisionUnrecognized);
+    }
+    if(!upstreamLineageIsConsistent(provenance)) {
+        return reject(
+            ProductionInterpretationReason::UpstreamLineageInconsistent);
+    }
 
     const auto& envelope=provenance.envelope();
 
