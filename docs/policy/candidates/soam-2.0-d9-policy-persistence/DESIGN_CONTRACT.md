@@ -1067,9 +1067,20 @@ enum class ProductionPersistenceReason : std::uint8_t {
 Candidate immutable success record:
 
 ```cpp
+class PersistenceObservationDecisionId final {
+public:
+    using Bytes = std::array<std::uint8_t, 16>;
+    [[nodiscard]] const Bytes& bytes() const noexcept;
+
+private:
+    explicit PersistenceObservationDecisionId(Bytes) noexcept;
+    friend class ProductionBridgePersistenceStream;
+};
+
 class ProductionPersistentBridgeRecommendation final {
 public:
-    [[nodiscard]] const RecommendationEventId& eventId() const noexcept;
+    [[nodiscard]] const PersistenceObservationDecisionId&
+        decisionId() const noexcept;
     [[nodiscard]] const PersistenceStreamInstanceId&
         streamInstanceId() const noexcept;
     [[nodiscard]] const ProductionPersistenceStreamKey& streamKey() const noexcept;
@@ -1085,8 +1096,17 @@ private:
 };
 
 class ProductionPersistenceRejection final {
-    // immutable stream-instance identity, attempted evidence identity,
-    // primary reason + reason flags; restricted-origin
+public:
+    [[nodiscard]] const PersistenceObservationDecisionId&
+        decisionId() const noexcept;
+    [[nodiscard]] const PersistenceStreamInstanceId&
+        streamInstanceId() const noexcept;
+    [[nodiscard]] ProductionPersistenceReason primaryReason() const noexcept;
+    [[nodiscard]] std::uint64_t reasonFlags() const noexcept;
+
+private:
+    // immutable attempted evidence identity + restricted-origin construction
+    friend class ProductionBridgePersistenceStream;
 };
 
 using ProductionPersistenceObservationResult =
@@ -1094,6 +1114,17 @@ using ProductionPersistenceObservationResult =
         ProductionPersistentBridgeRecommendation,
         ProductionPersistenceRejection>;
 ```
+
+The public handle returns
+`std::optional<ProductionPersistenceObservationResult>`. `std::nullopt`
+means the call could not establish a restricted-origin observation decision
+identity or could not acquire a valid live-stream lease; in either case no
+persistence state changes.
+
+`PersistenceObservationDecisionId` is the single identity for one completed
+D9B observation attempt. A success record is the recommendation event for that
+decision; a rejection carries the same decision-identity type. A second
+recommendation-only event-ID family is intentionally not introduced.
 
 A successful observation emits one immutable recommendation event even when the
 enumerated recommendation value did not change. This preserves the exact
@@ -1116,13 +1147,70 @@ public:
 };
 ```
 
-The exact handle representation remains an implementation design choice, but v1
-must satisfy:
+V1 fixes the handle/lifetime model to the same lease/invalidation family already
+used by the accepted production transition evaluator.
 
-- registry owns stream lifetime;
+Candidate shape:
+
+```cpp
+class ProductionPersistenceStreamHandle final {
+public:
+    ProductionPersistenceStreamHandle(
+        const ProductionPersistenceStreamHandle&) noexcept = default;
+    ProductionPersistenceStreamHandle& operator=(
+        const ProductionPersistenceStreamHandle&) noexcept = default;
+
+    [[nodiscard]]
+    std::optional<ProductionPersistenceObservationResult> observe(
+        const ProductionBridgePolicyEvidence& evidence) const;
+
+    [[nodiscard]] const PersistenceStreamInstanceId&
+        instanceId() const noexcept;
+
+private:
+    explicit ProductionPersistenceStreamHandle(
+        std::shared_ptr<detail::ProductionPersistenceStreamBindingState>) noexcept;
+
+    std::shared_ptr<detail::ProductionPersistenceStreamBindingState> state_;
+
+    friend class ProductionBridgePersistenceRegistry;
+};
+```
+
+The registry owns the concrete non-copyable stream. A handle owns only a shared
+binding state. Each `observe()` acquires a short-lived lease on the binding:
+
+```text
+handle
+-> acquire binding lease
+-> concrete live stream
+-> observe
+-> release lease
+```
+
+Closing/resetting an instance:
+
+1. marks the binding as no longer accepting new leases;
+2. waits for active leases to drain;
+3. marks/closes the stream;
+4. removes it from the live semantic-key registry;
+5. invalidates the binding target;
+6. only then allows concrete stream destruction.
+
+Therefore a copied/stale handle fails closed after close/reset and cannot retain
+authority to a destroyed stream.
+
+V1 requirements:
+
+- registry owns concrete stream lifetime;
+- handles are copyable observation façades, not stream owners;
+- concrete `ProductionBridgePersistenceStream` remains non-copyable and
+  non-movable;
 - at most one live instance per exact semantic key;
 - lookup by semantic key cannot silently return a closed instance;
 - close/reset targets a `PersistenceStreamInstanceId`;
+- close/reset drains active leases before destruction;
+- stale handles fail closed;
 - stream creation obtains its own fresh coherent runtime snapshot;
 - `seedLineage` establishes relationship/policy identity only and is not itself
   counted as an observation;
@@ -1140,13 +1228,16 @@ Before runtime acceptance, compile-fail tests must prove arbitrary callers canno
 2. directly construct `ProductionBridgePolicyEvidence`;
 3. directly construct a trusted `PersistencePolicySnapshot`;
 4. raw-byte/default construct `PersistenceStreamInstanceId`;
-5. construct a trusted stream from a caller-created semantic key/snapshot;
-6. copy a `ProductionBridgePersistenceStream`;
-7. directly construct `ProductionPersistentBridgeRecommendation`;
-8. turn a recommendation into `RequestedTransitionDirection` through any D9
-   API;
-9. invoke raw `BridgePersistence` through the D9 production surface;
-10. supply caller-selected activation/release values to a trusted v1 stream.
+5. default/raw-byte construct `PersistenceObservationDecisionId`;
+6. construct a trusted stream from a caller-created semantic key/snapshot;
+7. copy or move a `ProductionBridgePersistenceStream`;
+8. directly construct `ProductionPersistentBridgeRecommendation`;
+9. directly construct `ProductionPersistenceRejection`;
+10. construct a stream handle except through the registry;
+11. turn a recommendation into `RequestedTransitionDirection` through any D9
+    API;
+12. invoke raw `BridgePersistence` through the D9 production surface;
+13. supply caller-selected activation/release values to a trusted v1 stream.
 
 ### 31.12 API-level atomicity rule
 
@@ -1163,27 +1254,95 @@ validate stream identity/epoch/order/de-duplication
 
 If a pre-`observe()` validation fails, none of the state changes occur.
 
-Because current `BridgePersistence::observe()` is `noexcept`, mutation after
-the validation boundary can be designed so allocation/event preparation that
-may fail occurs before mutating the domain persistence state. The implementation
-design must preserve strong fail-closed semantics rather than allowing a
-successful internal `observe()` followed by failure to record its replay/order
-metadata.
+V1 fixes the allocation strategy as follows.
+
+The stream retains accepted capture IDs in an append-only
+`std::vector<SourceCaptureId::Bytes>`. Duplicate detection may be linear in v1;
+strictly increasing stateVersion remains an independent ordering rule.
+
+While holding the stream mutex and before `BridgePersistence::observe()`:
+
+1. perform every semantic validation;
+2. generate the non-zero `PersistenceObservationDecisionId`;
+3. prepare/copy all immutable recommendation/rejection metadata that may throw;
+4. ensure the accepted-capture vector has capacity for one additional ID
+   (`reserve()` may throw here);
+5. prepare the result storage needed for a noexcept commit path.
+
+If any step fails, return `std::nullopt` or the appropriate rejection and leave
+semantic persistence state unchanged.
+
+After preparation succeeds, the commit path is:
+
+```text
+BridgePersistence::observe(evidence)          // noexcept
+-> acceptedCaptureIds.push_back(bytes)        // no allocation after reserve
+-> lastAcceptedStateVersion = stateVersion    // scalar noexcept
+-> finalize prepared immutable success record // noexcept move/value writes
+```
+
+No operation that may allocate, generate randomness, or otherwise fail is
+permitted after the domain `observe()` call begins.
+
+Capacity growth by `reserve()` is storage preparation, not acceptance of the
+sample: size, de-duplication membership, lastAcceptedStateVersion and
+BridgePersistence state remain unchanged until commit.
+
+This gives D9 v1 a strong fail-closed observation boundary without requiring
+rollback or a copy/transaction API from `BridgePersistence`.
 
 ---
 
-## 32. Remaining gates before implementation
+## 32. Runtime binding and rejection determinism
 
-The earlier stream-key, anti-replay, epoch, stream-instance and policy-value
-design questions are now resolved at design-contract level.
+The coherent stream-creation snapshot uses a restricted runtime binding in the
+same lifetime-safety family as the accepted transition-evaluator binding:
 
-Before D9 implementation:
+```text
+SpatialAdaptiveMesh
+-> shared binding state
+-> short-lived runtime lease
+-> capture source/target/generation/stateVersion under topology consistency lock
+-> release lease
+```
 
-1. critically review this exact C++ API ownership surface;
-2. resolve the concrete stream-handle/lifetime representation;
-3. resolve allocation strategy needed for strong atomic observation semantics;
-4. define exact recommendation/rejection event-ID types and reason-flag layout;
-5. define the restricted runtime binding used for coherent stream-creation
-   snapshots;
-6. perform final D9 API design acceptance review;
-7. only then implement on a separate candidate branch.
+Mesh destruction first stops new runtime leases and drains existing leases before
+invalidating the owner pointer. Stream opening therefore cannot race use-after-
+free of the mesh.
+
+A registry may be exposed as a copyable façade over shared registry/binding
+state, but callers never receive the mesh pointer or a public constructor for the
+runtime binding.
+
+For `ProductionPersistenceRejection`, `reasonFlags` uses one bit per
+`ProductionPersistenceReason` enumerator. `primaryReason` is the first
+applicable reason in the normative validation order from section 18. The
+implementation must not select a primary reason based on container iteration
+order or thread scheduling.
+
+---
+
+## 33. D9 API design acceptance
+
+The final API review resolves the previously open design gates:
+
+- handle/lifetime: accepted lease/invalidation binding family;
+- stream owner: registry-owned, concrete stream non-copyable/non-movable;
+- stale-handle behavior: fail closed after close/reset;
+- strong observation atomicity: preflight all throwing work, then noexcept commit;
+- accepted-capture retention: append-only vector for v1;
+- observation identity: one restricted-origin
+  `PersistenceObservationDecisionId` family for success/rejection attempts;
+- rejection flags/priority: deterministic bitset + section-18 validation order;
+- coherent creation snapshot: restricted runtime lease + mesh consistency lock.
+
+No D9 design-level blocker remains before implementation.
+
+Implementation remains a separate gate and must:
+
+1. be created on a separate candidate implementation branch;
+2. add the positive/negative/compile-fail tests specified by this contract;
+3. keep PR #19/design history intact as the reviewed design basis;
+4. preserve all D7/D8A/D8B/D8C/D8D/C2 regression suites;
+5. remain non-authoritative: recommendation still does not become request,
+   eligibility, permission, authority, or execution.
