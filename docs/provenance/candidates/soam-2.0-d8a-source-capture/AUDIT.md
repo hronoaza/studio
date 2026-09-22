@@ -2,63 +2,106 @@
 
 ## Repository state
 
-- Current canonical `main`: `f7477ca28cbfe1d94470533d7ae44a7ac99d9b60`
-- Validated D8A head: `39ca8ff736c3ad21f4f0b5b644b42c0147c73699`
+- Current canonical `main`:
+  `f7477ca28cbfe1d94470533d7ae44a7ac99d9b60`
+- Validated amended implementation/test head:
+  `a7ed4edcf83b5787852265f99fc77ef4b57471d4`
 - PR: #8
-- PR state at audit: draft candidate
-- Compare state: ahead 35, behind 1
+- Acceptance status: `acceptance-pending`
 
-The branch is behind `main` by one documentation-only commit:
-`docs/architecture/SOAM_PROVENANCE_REFINEMENT_MAP.md`.
+Documentation commits after the validated implementation/test head do not change
+the code/test evidence represented by that exact head.
 
-No runtime/code change exists in that behind delta.
+## Architecture boundary
 
-## Architectural correction history
+D8A remains source capture only:
 
-The initial D8A attempt used the semantically stronger
-`ProductionRelationshipProvenance` name and depended on a
-transition-evaluator-owned locator.
+```text
+ProductionRelationshipLocator
+-> SourceCaptureId reservation
+-> coherent runtime capture
+-> ProductionRelationshipSourceSnapshot
+-> STOP
+```
 
-That design was not carried forward.
+The SourceCaptureId amendment does not make the snapshot a provenance envelope.
 
-The accepted refinement map established:
+Required distinction remains:
 
-`source facts != provenance envelope != admissible provenance != interpretation`
+```text
+raw source snapshot
+!= provenance envelope
+!= admissible provenance
+!= interpretation
+```
 
-The revised candidate therefore uses:
+## SourceCaptureId design realized
 
-`ProductionRelationshipLocator
--> ProductionRelationshipSourceSnapshot`
+The implementation uses an immutable 16-byte `SourceCaptureId`.
 
-and reserves provenance/admissibility semantics for later D8B/D8C layers.
+Properties verified in the candidate:
 
-## Dependency direction
+- no public default construction;
+- no public arbitrary-byte construction;
+- no public mutation;
+- read-only byte access;
+- copy/move preserves identity;
+- every new successful capture event receives a distinct ID;
+- all-zero is reserved invalid;
+- generation uses an OS-backed CSPRNG in production;
+- there is no timestamp/process/node semantic encoding;
+- the ID is not a capability, credential or proof of source truth.
 
-The canonical lower-level address type is:
+The test-only deterministic provider is internal and does not modify canonical
+public API declarations across build modes.
 
-`ProductionRelationshipLocator`
+## Capture ordering
 
-It contains only source and target node IDs.
+The implemented ordering is:
 
-It contains no:
+```text
+generate/reserve SourceCaptureId
+-> acquire topology/state shared lock
+-> validate relationship
+-> read coherent source facts
+-> construct immutable snapshot
+-> release lock
+-> publish/return
+```
 
-- relationship generation;
-- runtime state version;
-- transition direction;
-- eligibility state;
-- provenance semantics;
-- authority semantics.
+This keeps potentially blocking OS randomness outside the topology lock.
 
-Both source capture and live transition evaluation depend on this locator.
-D8A no longer depends on transition-evaluator identity semantics.
+An ID reserved for a capture that later fails validation is never observable as
+a published capture identity and is not reused by the local generator path.
+
+## Randomness/collision boundary
+
+Production generation is 128-bit OS-backed randomness.
+
+A bounded process-local recent-ID tracker provides deterministic local collision
+rejection and testability; it is defense-in-depth, not a global provenance
+ledger.
+
+The design does not claim mathematical collision impossibility or globally
+persistent duplicate detection.
+
+Random-source failure or retry exhaustion fails closed:
+
+```text
+no valid SourceCaptureId
+-> no source snapshot publication
+```
+
+No fallback to weak PRNG, timestamp, zero ID or process-local counter exists.
 
 ## Source snapshot semantics
 
 `ProductionRelationshipSourceSnapshot` is restricted-origin and immutable
 after construction.
 
-It records raw runtime facts for one observed directed relationship incarnation:
+It records one observed directed relationship capture:
 
+- SourceCaptureId;
 - source/target IDs;
 - relationship generation;
 - runtime state version;
@@ -69,60 +112,92 @@ It records raw runtime facts for one observed directed relationship incarnation:
 - source/target state;
 - source/target health.
 
-Capture occurs while the runtime topology/state shared lock is held.
+The capture ID identifies the observation event.
+
+It is distinct from:
+
+- relationship generation;
+- runtime state version;
+- future provenance item identity;
+- future digest;
+- authority capability.
 
 ## Non-forgeability
 
-The snapshot has no public constructor.
+The public caller cannot:
 
-The compile-fail gate demonstrates that a caller cannot manufacture a snapshot
-with arbitrary generation/version/runtime values.
+- construct a source snapshot;
+- default-construct a SourceCaptureId;
+- construct SourceCaptureId from arbitrary bytes;
+- mutate the capture ID exposed by a snapshot.
 
-This is a source-integrity boundary only; it is not yet provenance
-admissibility.
+Compile-fail gates demonstrate these boundaries.
 
-## Regression boundary
+## Regression evidence
 
-Final CI on exact head `39ca8ff736c3ad21f4f0b5b644b42c0147c73699` shows:
+Exact head
+`a7ed4edcf83b5787852265f99fc77ef4b57471d4`
+completed successfully in four workflows:
 
-- runtime validation: success, 8/8 under both sanitizer jobs;
-- D8A source capture validation: success, 8/8 under both sanitizer jobs;
-- live evaluator validation: success, 8/8 under both sanitizer jobs;
-- D7 provenance gate validation: success, 8/8 under both sanitizer jobs.
+- Runtime Validation #38 / `35702949626`;
+- D8A Source Capture Validation #24 / `35702949664`;
+- Live Evaluator Validation #35 / `35702949681`;
+- D7 Provenance Gate Validation #33 / `35702949673`.
 
-The accepted fail-closed boundary is preserved:
+Each workflow passed the full 11-test suite under both:
 
-`source snapshot != transition direction`
+- Debug ASan/UBSan;
+- TSan.
 
-No D8A path creates `InteractionObservation`, `BridgeConfidence`,
-`PersistentBridgeRecommendation`, or
-`eligible_for_authority_consideration`.
+Observed in every reviewed job:
 
-## Naming hygiene
+`100% tests passed, 0 tests failed out of 11`
 
-Active D8A implementation/API/workflow naming is SOAM/production-neutral.
-Legacy project labels from research archives are not introduced into the active
-runtime surface.
+No reviewed sanitizer report indicates ASan, UBSan or TSan failure.
 
-Historical source names remain relevant only as provenance/evidence references
-outside active implementation naming.
+## Fail-closed boundary
 
-## Remaining refinement gaps
+No D8A path creates:
 
-D8A deliberately leaves the following for later layers:
+- `InteractionObservation`;
+- `BridgeConfidence`;
+- `PersistentBridgeRecommendation`;
+- requested transition direction;
+- `eligible_for_authority_consideration`;
+- authority/capability/commit.
+
+Therefore the accepted D7/C2 negative boundary remains intact.
+
+## Portability note
+
+The current CI evidence validates the Linux GitHub-hosted runner paths.
+
+The production implementation also contains a Windows BCrypt path and
+Apple/BSD `arc4random_buf` path, but those platform paths are not independently
+validated by the cited Linux workflow runs.
+
+They must not be represented as tested platform evidence until exercised on
+those platforms.
+
+## Remaining gaps
+
+D8A deliberately leaves later layers to:
 
 - D8B provenance envelope;
-- D8C admissibility;
+- D8C provenance admissibility;
 - D8D versioned interpretation;
-- persistence/direction binding to live production evidence;
-- C1 prerequisite materialization;
+- evidence ledger;
 - authority/capability/commit.
+
+D8B's canonical 16-byte SourceCaptureId wire representation is design evidence
+only until D8B implementation exists.
 
 ## Audit disposition
 
-Technical status: `verified`.
+Technical status: `verified-on-cited-linux-CI`.
 
-Architectural status: `source-capture boundary verified`.
+Architectural status:
+`source-capture + capture-identity boundary verified`.
 
 Acceptance status: `acceptance-pending`.
 
