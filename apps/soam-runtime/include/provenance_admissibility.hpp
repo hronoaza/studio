@@ -12,33 +12,52 @@
 
 namespace AdaptiveMesh {
 
+namespace detail {
+struct ProvenanceAdmissibilityTestAccess;
+}
+
 class PolicySnapshotId final {
 public:
     using Bytes = std::array<std::uint8_t, 16>;
+
     PolicySnapshotId(const PolicySnapshotId&) noexcept = default;
     PolicySnapshotId& operator=(const PolicySnapshotId&) noexcept = default;
     PolicySnapshotId(PolicySnapshotId&&) noexcept = default;
     PolicySnapshotId& operator=(PolicySnapshotId&&) noexcept = default;
+
     [[nodiscard]] const Bytes& bytes() const noexcept { return bytes_; }
-    friend bool operator==(const PolicySnapshotId&, const PolicySnapshotId&) noexcept = default;
+
+    friend bool operator==(
+        const PolicySnapshotId&,
+        const PolicySnapshotId&) noexcept = default;
+
 private:
     explicit PolicySnapshotId(Bytes bytes) noexcept : bytes_(bytes) {}
     Bytes bytes_;
-    friend class ProvenanceAdmissibilityPolicyPublisher;
+
+    friend class ProductionProvenanceAdmissibilityPolicyProvider;
+    friend struct detail::ProvenanceAdmissibilityTestAccess;
 };
 
 class AdmissibilityDecisionId final {
 public:
     using Bytes = std::array<std::uint8_t, 16>;
+
     AdmissibilityDecisionId(const AdmissibilityDecisionId&) noexcept = default;
     AdmissibilityDecisionId& operator=(const AdmissibilityDecisionId&) noexcept = default;
     AdmissibilityDecisionId(AdmissibilityDecisionId&&) noexcept = default;
     AdmissibilityDecisionId& operator=(AdmissibilityDecisionId&&) noexcept = default;
+
     [[nodiscard]] const Bytes& bytes() const noexcept { return bytes_; }
-    friend bool operator==(const AdmissibilityDecisionId&, const AdmissibilityDecisionId&) noexcept = default;
+
+    friend bool operator==(
+        const AdmissibilityDecisionId&,
+        const AdmissibilityDecisionId&) noexcept = default;
+
 private:
     explicit AdmissibilityDecisionId(Bytes bytes) noexcept : bytes_(bytes) {}
     Bytes bytes_;
+
     friend class ProvenanceAdmissibilityEvaluator;
 };
 
@@ -49,60 +68,60 @@ struct AdmissibilityPolicyDescriptor final {
 };
 
 enum class ProducerLifecycleStatus : std::uint8_t {
-    RECOGNIZED,
-    RETIRED,
-    PROHIBITED
+    Recognized,
+    Retired,
+    Prohibited
 };
 
 struct ProducerPolicyEntry final {
-    std::array<std::uint8_t, 16> producerId;
+    ProvenanceMetadataView::Id128 producerId;
     std::uint16_t producerMajor;
     std::uint16_t producerMinor;
     std::uint8_t implementationRevisionKind;
-    std::array<std::uint8_t, 32> implementationRevision;
-    ProducerLifecycleStatus lifecycleStatus;
+    ProvenanceMetadataView::Digest256 implementationRevision;
+    ProducerLifecycleStatus status;
 };
 
 enum class SchemaLifecycleStatus : std::uint8_t {
-    COMPATIBLE,
-    RETIRED,
-    PROHIBITED,
-    INCOMPATIBLE
+    Compatible,
+    Retired,
+    Prohibited,
+    Incompatible
 };
 
 struct SchemaPolicyEntry final {
-    std::array<std::uint8_t, 16> schemaId;
+    ProvenanceMetadataView::Id128 schemaId;
     std::uint16_t schemaMajor;
     std::uint16_t schemaMinor;
     std::uint16_t canonicalEncodingVersion;
-    SchemaLifecycleStatus lifecycleStatus;
+    SchemaLifecycleStatus status;
 };
 
 enum class DependencySemanticCategory : std::uint8_t {
-    SOURCE_CAPTURE_CONTRACT,
-    CANONICAL_ENCODING,
-    DIGEST_PROFILE,
-    RUNTIME_CONTRACT,
-    INTERPRETATION_POLICY,
-    OTHER
+    SourceCaptureContract,
+    CanonicalEncoding,
+    DigestProfile,
+    RuntimeContract,
+    InterpretationPolicy,
+    Other
 };
 
 enum class DependencyLifecycleStatus : std::uint8_t {
-    ACTIVE,
-    RETIRED,
-    PROHIBITED,
-    INCOMPATIBLE
+    Active,
+    Retired,
+    Prohibited,
+    Incompatible
 };
 
 struct DependencyPolicyEntry final {
     std::uint8_t dependencyKind;
-    std::array<std::uint8_t, 16> dependencyId;
+    ProvenanceMetadataView::Id128 dependencyId;
     std::uint16_t versionMajor;
     std::uint16_t versionMinor;
     std::uint8_t revisionKind;
-    std::array<std::uint8_t, 32> revisionDigest;
-    DependencySemanticCategory semanticCategory;
-    DependencyLifecycleStatus lifecycleStatus;
+    ProvenanceMetadataView::Digest256 revisionDigest;
+    DependencySemanticCategory category;
+    DependencyLifecycleStatus status;
 };
 
 class ProvenanceAdmissibilityPolicySnapshot final {
@@ -131,6 +150,9 @@ public:
     [[nodiscard]] const std::vector<DependencyPolicyEntry>& dependencies() const noexcept {
         return dependencies_;
     }
+    [[nodiscard]] const std::vector<std::uint8_t>& requiredDependencyKinds() const noexcept {
+        return requiredDependencyKinds_;
+    }
 
 private:
     ProvenanceAdmissibilityPolicySnapshot(
@@ -138,53 +160,54 @@ private:
         AdmissibilityPolicyDescriptor descriptor,
         std::vector<ProducerPolicyEntry> producers,
         std::vector<SchemaPolicyEntry> schemas,
-        std::vector<DependencyPolicyEntry> dependencies) noexcept
+        std::vector<DependencyPolicyEntry> dependencies,
+        std::vector<std::uint8_t> requiredDependencyKinds) noexcept
         : policySnapshotId_(std::move(policySnapshotId)),
           descriptor_(descriptor),
           producers_(std::move(producers)),
           schemas_(std::move(schemas)),
-          dependencies_(std::move(dependencies)) {}
+          dependencies_(std::move(dependencies)),
+          requiredDependencyKinds_(std::move(requiredDependencyKinds)) {}
 
     PolicySnapshotId policySnapshotId_;
     AdmissibilityPolicyDescriptor descriptor_;
     std::vector<ProducerPolicyEntry> producers_;
     std::vector<SchemaPolicyEntry> schemas_;
     std::vector<DependencyPolicyEntry> dependencies_;
+    std::vector<std::uint8_t> requiredDependencyKinds_;
 
-    friend class ProvenanceAdmissibilityPolicyPublisher;
+    friend class ProductionProvenanceAdmissibilityPolicyProvider;
+    friend struct detail::ProvenanceAdmissibilityTestAccess;
 };
 
-class ProvenanceAdmissibilityPolicyPublisher final {
+class ProductionProvenanceAdmissibilityPolicyProvider final {
 public:
-    [[nodiscard]] std::optional<ProvenanceAdmissibilityPolicySnapshot> publish(
-        AdmissibilityPolicyDescriptor descriptor,
-        std::vector<ProducerPolicyEntry> producers,
-        std::vector<SchemaPolicyEntry> schemas,
-        std::vector<DependencyPolicyEntry> dependencies) const;
+    [[nodiscard]] static std::optional<ProvenanceAdmissibilityPolicySnapshot>
+    createCurrent();
 };
 
 enum class ProvenanceAdmissibilityReason : std::uint8_t {
-    POLICY_UNAVAILABLE,
-    METADATA_INCONSISTENT,
-    CANONICAL_DIGEST_MISMATCH,
-    PRODUCER_UNKNOWN,
-    PRODUCER_RETIRED,
-    PRODUCER_PROHIBITED,
-    IMPLEMENTATION_REVISION_UNRECOGNIZED,
-    SCHEMA_UNKNOWN,
-    SCHEMA_INCOMPATIBLE,
-    SCHEMA_RETIRED,
-    CANONICAL_ENCODING_UNSUPPORTED,
-    REQUIRED_DEPENDENCY_MISSING,
-    DEPENDENCY_UNKNOWN,
-    DEPENDENCY_RETIRED,
-    DEPENDENCY_PROHIBITED,
-    DEPENDENCY_INCOMPATIBLE,
-    LEGACY_INTERPRETATION_DEPENDENCY,
-    SOURCE_RESOLVER_FAILURE,
-    SOURCE_EVIDENCE_INTEGRITY_CONFLICT,
-    SOURCE_RECORD_UNAVAILABLE,
-    SOURCE_RECORD_MISMATCH
+    PolicyUnavailable,
+    MetadataInconsistent,
+    CanonicalDigestMismatch,
+    ProducerUnknown,
+    ProducerRetired,
+    ProducerProhibited,
+    ImplementationRevisionUnrecognized,
+    SchemaUnknown,
+    SchemaIncompatible,
+    SchemaRetired,
+    CanonicalEncodingUnsupported,
+    RequiredDependencyMissing,
+    DependencyUnknown,
+    DependencyRetired,
+    DependencyProhibited,
+    DependencyIncompatible,
+    LegacyInterpretationDependency,
+    SourceResolverFailure,
+    SourceEvidenceIntegrityConflict,
+    SourceRecordUnavailable,
+    SourceRecordMismatch
 };
 
 struct SourceVerificationSummary final {
@@ -194,10 +217,14 @@ struct SourceVerificationSummary final {
 
 class AdmissibleProductionProvenance final {
 public:
-    AdmissibleProductionProvenance(const AdmissibleProductionProvenance&) = default;
-    AdmissibleProductionProvenance& operator=(const AdmissibleProductionProvenance&) = default;
-    AdmissibleProductionProvenance(AdmissibleProductionProvenance&&) noexcept = default;
-    AdmissibleProductionProvenance& operator=(AdmissibleProductionProvenance&&) noexcept = default;
+    AdmissibleProductionProvenance(
+        const AdmissibleProductionProvenance&) = default;
+    AdmissibleProductionProvenance& operator=(
+        const AdmissibleProductionProvenance&) = default;
+    AdmissibleProductionProvenance(
+        AdmissibleProductionProvenance&&) noexcept = default;
+    AdmissibleProductionProvenance& operator=(
+        AdmissibleProductionProvenance&&) noexcept = default;
 
     [[nodiscard]] const AdmissibilityDecisionId& decisionId() const noexcept {
         return decisionId_;
@@ -239,10 +266,14 @@ private:
 
 class ProvenanceAdmissibilityRejection final {
 public:
-    ProvenanceAdmissibilityRejection(const ProvenanceAdmissibilityRejection&) = default;
-    ProvenanceAdmissibilityRejection& operator=(const ProvenanceAdmissibilityRejection&) = default;
-    ProvenanceAdmissibilityRejection(ProvenanceAdmissibilityRejection&&) noexcept = default;
-    ProvenanceAdmissibilityRejection& operator=(ProvenanceAdmissibilityRejection&&) noexcept = default;
+    ProvenanceAdmissibilityRejection(
+        const ProvenanceAdmissibilityRejection&) = default;
+    ProvenanceAdmissibilityRejection& operator=(
+        const ProvenanceAdmissibilityRejection&) = default;
+    ProvenanceAdmissibilityRejection(
+        ProvenanceAdmissibilityRejection&&) noexcept = default;
+    ProvenanceAdmissibilityRejection& operator=(
+        ProvenanceAdmissibilityRejection&&) noexcept = default;
 
     [[nodiscard]] const AdmissibilityDecisionId& decisionId() const noexcept {
         return decisionId_;
