@@ -136,6 +136,16 @@ void resetInvariantOpaqueIdGeneratorForTesting() noexcept
     nextRecentId = 0;
 }
 
+double projectInvariantCapacityForTesting(
+    double current,
+    RequestedTransitionDirection direction) noexcept
+{
+    constexpr double fraction = 0.125;
+    return direction == RequestedTransitionDirection::support
+        ? current + (1.0-current)*fraction
+        : current*(1.0-fraction);
+}
+
 } // namespace AdaptiveMesh::detail
 
 namespace AdaptiveMesh {
