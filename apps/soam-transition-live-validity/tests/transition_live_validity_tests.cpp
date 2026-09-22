@@ -130,6 +130,7 @@ int main() {
     detail::resetLiveValidityOpaqueIdGeneratorForTesting();
 
     std::optional<ProductionTransitionLiveValidityEvaluator> staleEvaluator;
+    std::optional<ProductionDerivedTransitionRequest> retainedRequest;
 
     {
         SpatialAdaptiveMesh mesh(2);
@@ -139,6 +140,7 @@ int main() {
 
         RetainedSourceEvidenceStore store;
         const auto request = makeSupportRequest(mesh,store);
+        retainedRequest.emplace(request);
 
         ProductionTransitionLiveValidityEvaluator evaluator{
             mesh.productionTransitionLiveSnapshotSource()};
@@ -220,8 +222,16 @@ int main() {
     }
 
     require(staleEvaluator.has_value());
-    ProductionDerivedTransitionRequest* impossibleRequest = nullptr;
-    (void)impossibleRequest;
+    require(retainedRequest.has_value());
+
+    const auto afterDestruction =
+        staleEvaluator->evaluate(*retainedRequest);
+    require(afterDestruction.has_value());
+    require(std::holds_alternative<
+        ProductionTransitionLiveValidityRejection>(*afterDestruction));
+    require(std::get<ProductionTransitionLiveValidityRejection>(
+        *afterDestruction).primaryReason() ==
+            TransitionLiveValidityReason::SnapshotUnavailable);
 
     detail::resetLiveValidityOpaqueIdGeneratorForTesting();
     return 0;
