@@ -54,7 +54,9 @@ configure_file(
     @ONLY)
 
 target_include_directories(soam_runtime
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include>
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 target_link_libraries(soam_runtime PUBLIC Threads::Threads)
