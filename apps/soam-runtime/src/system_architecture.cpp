@@ -5,6 +5,8 @@
 #include "policy_persistence.hpp"
 #include "production_transition_live_snapshot.hpp"
 #include "detail/production_transition_live_snapshot_binding.hpp"
+#include "production_transition_invariant_snapshot.hpp"
+#include "detail/production_transition_invariant_snapshot_binding.hpp"
 #include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
@@ -906,7 +908,9 @@ SpatialAdaptiveMesh::SpatialAdaptiveMesh(std::size_t maxWorkers)
       persistenceRegistryState_(
           detail::makeProductionPersistenceRegistryState(this)),
       transitionLiveSnapshotBinding_(
-          detail::makeProductionTransitionLiveSnapshotBinding(this))
+          detail::makeProductionTransitionLiveSnapshotBinding(this)),
+      transitionInvariantSnapshotBinding_(
+          detail::makeProductionTransitionInvariantSnapshotBinding(this))
 {
 }
 
@@ -915,6 +919,8 @@ SpatialAdaptiveMesh::~SpatialAdaptiveMesh() {
         persistenceRegistryState_);
     detail::invalidateProductionTransitionLiveSnapshotBinding(
         transitionLiveSnapshotBinding_);
+    detail::invalidateProductionTransitionInvariantSnapshotBinding(
+        transitionInvariantSnapshotBinding_);
     detail::invalidateProductionTransitionEvaluationBinding(
         transitionEvaluationBinding_);
 }
@@ -1053,6 +1059,12 @@ ProductionTransitionLiveSnapshotSource
 SpatialAdaptiveMesh::productionTransitionLiveSnapshotSource() const noexcept {
     return ProductionTransitionLiveSnapshotSource{
         transitionLiveSnapshotBinding_};
+}
+
+ProductionTransitionInvariantSnapshotSource
+SpatialAdaptiveMesh::productionTransitionInvariantSnapshotSource() const noexcept {
+    return ProductionTransitionInvariantSnapshotSource{
+        transitionInvariantSnapshotBinding_};
 }
 
 std::optional<SpatialAdaptiveMesh::PersistenceCreationSnapshot>
@@ -1200,5 +1212,78 @@ AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
         impl_->transitionStateVersion,
         true,
         found->generation
+    };
+}
+
+
+std::optional<AdaptiveMesh::ProductionTransitionInvariantSnapshot>
+AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionInvariantSnapshot(
+    std::size_t sourceNodeId,
+    std::size_t targetNodeId) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (sourceNodeId >= impl_->nodes.size() ||
+        targetNodeId >= impl_->nodes.size() ||
+        sourceNodeId == targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& source = impl_->nodes[sourceNodeId];
+    const auto& target = impl_->nodes[targetNodeId];
+
+    const auto forwardIt = std::find_if(
+        source.bridges.begin(),
+        source.bridges.end(),
+        [targetNodeId](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(targetNodeId);
+        });
+
+    const auto reverseIt = std::find_if(
+        target.bridges.begin(),
+        target.bridges.end(),
+        [sourceNodeId](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(sourceNodeId);
+        });
+
+    std::optional<ProductionTransitionInvariantBridgeSnapshot> forward;
+    std::optional<ProductionTransitionInvariantBridgeSnapshot> reverse;
+
+    if (forwardIt != source.bridges.end()) {
+        forward = ProductionTransitionInvariantBridgeSnapshot{
+            targetNodeId,
+            forwardIt->generation,
+            forwardIt->capacity,
+            forwardIt->distance,
+            forwardIt->orientationWeight,
+            forwardIt->status
+        };
+    }
+
+    if (reverseIt != target.bridges.end()) {
+        reverse = ProductionTransitionInvariantBridgeSnapshot{
+            sourceNodeId,
+            reverseIt->generation,
+            reverseIt->capacity,
+            reverseIt->distance,
+            reverseIt->orientationWeight,
+            reverseIt->status
+        };
+    }
+
+    return ProductionTransitionInvariantSnapshot{
+        sourceNodeId,
+        targetNodeId,
+        impl_->transitionStateVersion,
+        std::move(forward),
+        std::move(reverse),
+        source.state.load(),
+        target.state.load(),
+        source.invariant.baseline,
+        source.invariant.maxEpsilon,
+        target.invariant.baseline,
+        target.invariant.maxEpsilon
     };
 }

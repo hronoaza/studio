@@ -18,10 +18,13 @@ class ProductionTransitionEvaluator;
 class ProductionBridgePersistenceRegistry;
 class ProductionTransitionLiveSnapshot;
 class ProductionTransitionLiveSnapshotSource;
+class ProductionTransitionInvariantSnapshot;
+class ProductionTransitionInvariantSnapshotSource;
 namespace detail {
 class ProductionTransitionEvaluationBindingState;
 class ProductionPersistenceRegistryState;
 class ProductionTransitionLiveSnapshotBindingState;
+class ProductionTransitionInvariantSnapshotBindingState;
 }
 
 void requireFinite(double value, const char* name);
@@ -122,6 +125,9 @@ public:
     [[nodiscard]] ProductionTransitionLiveSnapshotSource
     productionTransitionLiveSnapshotSource() const noexcept;
 
+    [[nodiscard]] ProductionTransitionInvariantSnapshotSource
+    productionTransitionInvariantSnapshotSource() const noexcept;
+
     [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>
     captureProductionRelationshipSourceSnapshot(
         const ProductionRelationshipLocator& locator) const;
@@ -162,6 +168,11 @@ private:
         std::size_t sourceNodeId,
         std::size_t targetNodeId) const;
 
+    [[nodiscard]] std::optional<ProductionTransitionInvariantSnapshot>
+    captureTransitionInvariantSnapshot(
+        std::size_t sourceNodeId,
+        std::size_t targetNodeId) const;
+
     struct Impl;
     std::unique_ptr<Impl> impl_;
     std::shared_ptr<detail::ProductionTransitionEvaluationBindingState>
@@ -170,9 +181,12 @@ private:
         persistenceRegistryState_;
     std::shared_ptr<detail::ProductionTransitionLiveSnapshotBindingState>
         transitionLiveSnapshotBinding_;
+    std::shared_ptr<detail::ProductionTransitionInvariantSnapshotBindingState>
+        transitionInvariantSnapshotBinding_;
 
     friend class ProductionTransitionEvaluator;
     friend class ProductionTransitionLiveSnapshotSource;
+    friend class ProductionTransitionInvariantSnapshotSource;
     friend class detail::ProductionPersistenceRegistryState;
 };
 
