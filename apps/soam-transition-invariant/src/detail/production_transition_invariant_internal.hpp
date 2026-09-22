@@ -29,4 +29,8 @@ void setInvariantOpaqueIdFillFunctionForTesting(
 
 void resetInvariantOpaqueIdGeneratorForTesting() noexcept;
 
+[[nodiscard]] double projectInvariantCapacityForTesting(
+    double current,
+    RequestedTransitionDirection direction) noexcept;
+
 } // namespace AdaptiveMesh::detail
