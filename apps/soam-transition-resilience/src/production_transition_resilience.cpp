@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <optional>
 #include <queue>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -385,13 +386,7 @@ ProductionTransitionResilienceEvaluator::evaluate(
         requested.sourceNodeId(),requested.targetNodeId());
 
     const ProductionTransitionResilienceRelationshipSnapshot* requestPair=nullptr;
-    std::unordered_set<std::uint64_t> pairKeys;
-    pairKeys.reserve(snapshot->relationships().size());
-
-    auto pairKey=[](std::size_t a,std::size_t b) noexcept {
-        return (static_cast<std::uint64_t>(a)<<32U) ^
-            static_cast<std::uint64_t>(b);
-    };
+    std::set<std::pair<std::size_t,std::size_t>> pairKeys;
 
     for (const auto& pair:snapshot->relationships()) {
         if (!containsNode(nodes,pair.nodeA()) ||
@@ -399,7 +394,7 @@ ProductionTransitionResilienceEvaluator::evaluate(
             pair.nodeA()>=pair.nodeB()) {
             return reject(TransitionResilienceReason::TopologySnapshotInvalid);
         }
-        if (!pairKeys.insert(pairKey(pair.nodeA(),pair.nodeB())).second) {
+        if (!pairKeys.emplace(pair.nodeA(),pair.nodeB()).second) {
             return reject(TransitionResilienceReason::TopologySnapshotInvalid);
         }
         if (pair.nodeA()==requestA && pair.nodeB()==requestB) {
