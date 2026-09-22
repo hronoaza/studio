@@ -20,7 +20,8 @@ add_library(soam_runtime STATIC
     src/policy_persistence.cpp
     src/policy_persistence_stream.cpp
     src/production_transition_live_snapshot.cpp
-    src/production_transition_invariant_snapshot.cpp)
+    src/production_transition_invariant_snapshot.cpp
+    src/production_transition_resilience_snapshot.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 # D8B implementation revision is a reproducible digest of the implementation
@@ -113,7 +114,8 @@ foreach(test_target
         policy_persistence_tests
         policy_persistence_stream_tests
         transition_live_snapshot_tests
-        transition_invariant_snapshot_tests)
+        transition_invariant_snapshot_tests
+        transition_resilience_snapshot_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})

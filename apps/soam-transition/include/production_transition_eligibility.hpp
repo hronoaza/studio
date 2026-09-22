@@ -11,6 +11,7 @@ class ProductionTransitionConstructionAccess;
 class ProductionTransitionRequestDerivationAccess;
 class ProductionLiveValidityC1ConversionAccess;
 class ProductionTransitionInvariantPolicyAccess;
+class ProductionTransitionResiliencePolicyAccess;
 class ProductionAuthorityDerivationAccess;
 }
 
@@ -97,6 +98,7 @@ private:
     friend class detail::ProductionTransitionConstructionAccess;
     friend class detail::ProductionTransitionRequestDerivationAccess;
     friend class detail::ProductionTransitionInvariantPolicyAccess;
+    friend class detail::ProductionTransitionResiliencePolicyAccess;
     friend class detail::ProductionAuthorityDerivationAccess;
 };
 

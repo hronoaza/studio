@@ -20,11 +20,14 @@ class ProductionTransitionLiveSnapshot;
 class ProductionTransitionLiveSnapshotSource;
 class ProductionTransitionInvariantSnapshot;
 class ProductionTransitionInvariantSnapshotSource;
+class ProductionTransitionResilienceSnapshot;
+class ProductionTransitionResilienceSnapshotSource;
 namespace detail {
 class ProductionTransitionEvaluationBindingState;
 class ProductionPersistenceRegistryState;
 class ProductionTransitionLiveSnapshotBindingState;
 class ProductionTransitionInvariantSnapshotBindingState;
+class ProductionTransitionResilienceSnapshotBindingState;
 }
 
 void requireFinite(double value, const char* name);
@@ -128,6 +131,9 @@ public:
     [[nodiscard]] ProductionTransitionInvariantSnapshotSource
     productionTransitionInvariantSnapshotSource() const noexcept;
 
+    [[nodiscard]] ProductionTransitionResilienceSnapshotSource
+    productionTransitionResilienceSnapshotSource() const noexcept;
+
     [[nodiscard]] std::optional<ProductionRelationshipSourceSnapshot>
     captureProductionRelationshipSourceSnapshot(
         const ProductionRelationshipLocator& locator) const;
@@ -173,6 +179,9 @@ private:
         std::size_t sourceNodeId,
         std::size_t targetNodeId) const;
 
+    [[nodiscard]] std::optional<ProductionTransitionResilienceSnapshot>
+    captureTransitionResilienceSnapshot() const;
+
     struct Impl;
     std::unique_ptr<Impl> impl_;
     std::shared_ptr<detail::ProductionTransitionEvaluationBindingState>
@@ -183,10 +192,13 @@ private:
         transitionLiveSnapshotBinding_;
     std::shared_ptr<detail::ProductionTransitionInvariantSnapshotBindingState>
         transitionInvariantSnapshotBinding_;
+    std::shared_ptr<detail::ProductionTransitionResilienceSnapshotBindingState>
+        transitionResilienceSnapshotBinding_;
 
     friend class ProductionTransitionEvaluator;
     friend class ProductionTransitionLiveSnapshotSource;
     friend class ProductionTransitionInvariantSnapshotSource;
+    friend class ProductionTransitionResilienceSnapshotSource;
     friend class detail::ProductionPersistenceRegistryState;
 };
 
