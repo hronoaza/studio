@@ -592,3 +592,32 @@ Recommended next action:
 2. if accepted, amend `DESIGN_CONTRACT.md` on this candidate branch;
 3. produce exact `CanonicalEnvelopeV1` byte layout and fixed vectors;
 4. only then design the C++ API.
+
+
+---
+
+## Resolution after D8A acceptance
+
+This review remains historical evidence of the defects found in the first D8B
+draft.
+
+Its blocking findings were subsequently addressed as follows:
+
+- DR-001: resolved upstream by accepted D8A `SourceCaptureId` in Current
+  Baseline `379cd2e2cf17eb7181629945e670f7923ba662ce`;
+- DR-002: resolved in the revised contract by narrowing to
+  `CanonicalDigest`;
+- DR-003: resolved by splitting mandatory `SourceBinding` from future
+  `SourceRecordReference`;
+- DR-004: resolved by normative `CanonicalEnvelopeV1`;
+- DR-005: revised contract does not permit arbitrary decoded bytes to become a
+  trusted envelope;
+- DR-007: normative producer/schema ownership is separated from additional
+  dependency entries;
+- DR-008: fixed byte-level conformance vectors now exist.
+
+DR-006 remains open only for the D8B-owned `ProvenanceItemId`.
+The D8A-owned capture identity uniqueness decision is already accepted upstream.
+
+Therefore the historical disposition `REVISE BEFORE DESIGN ACCEPTANCE` should
+not be read as the current PR #12 disposition.
