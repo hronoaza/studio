@@ -13,7 +13,9 @@ add_library(soam_runtime STATIC
     src/system_architecture.cpp
     src/production_transition_evaluator.cpp
     src/source_capture_id.cpp
-    src/production_provenance_envelope.cpp)
+    src/production_provenance_envelope.cpp
+    src/retained_source_evidence.cpp
+    src/provenance_admissibility.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 # D8B implementation revision is a reproducible digest of the implementation
@@ -60,7 +62,8 @@ foreach(test_target
         live_evaluator_tests
         d7_provenance_gate_tests
         source_snapshot_tests
-        provenance_envelope_tests)
+        provenance_envelope_tests
+        provenance_admissibility_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
@@ -69,6 +72,8 @@ endforeach()
 target_include_directories(source_snapshot_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(provenance_envelope_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(provenance_admissibility_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_test(
@@ -163,3 +168,58 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D8B provenance item identity mutation misuse")
+
+
+add_test(
+    NAME reject_d8c_default_construct_policy_snapshot_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_default_construct_policy_snapshot_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C PolicySnapshotId default construction misuse")
+
+add_test(
+    NAME reject_d8c_construct_policy_snapshot_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_construct_policy_snapshot_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C PolicySnapshotId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8c_default_construct_decision_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_default_construct_decision_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C AdmissibilityDecisionId default construction misuse")
+
+add_test(
+    NAME reject_d8c_construct_decision_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_construct_decision_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C AdmissibilityDecisionId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8c_default_construct_admissible_provenance
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_default_construct_admissible_provenance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C admissible provenance default construction misuse")
+
+add_test(
+    NAME reject_d8c_construct_admissible_from_envelope
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8c_construct_admissible_from_envelope.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8C raw envelope to admissible provenance misuse")
