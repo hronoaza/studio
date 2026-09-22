@@ -1,6 +1,7 @@
 #include "production_provenance_envelope.hpp"
 #include "detail/provenance_envelope_internal.hpp"
 #include "system_architecture.hpp"
+#include "d8b_implementation_revision.hpp"
 
 #include <algorithm>
 #include <array>
@@ -50,10 +51,6 @@ constexpr Id128 kDepDigestProfile{
     0xda,0x5d,0x36,0x58,0x65,0x07,0x6c,0xc4,
     0x15,0xc1,0xac,0xd8,0x42,0xab,0xf0,0xd0
 };
-
-#ifndef SOAM_D8B_IMPLEMENTATION_REVISION_SHA
-#error "SOAM_D8B_IMPLEMENTATION_REVISION_SHA must be supplied by the build"
-#endif
 
 [[nodiscard]] constexpr std::uint8_t hexNibble(char value) {
     if (value >= '0' && value <= '9') {
