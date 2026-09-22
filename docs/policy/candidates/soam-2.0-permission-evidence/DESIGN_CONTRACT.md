@@ -1,3 +1,38 @@
+# SOAM Permission Evidence Design Contract
+
+> **status:** design baseline v0  
+> **ratification:** not performed  
+> **next:** v0 -> amendment -> v1 ratification  
+> **predecessor:** none  
+> **supersedes:** none
+
+## Baseline immutability and amendments
+
+This file, once accepted into `main` as design baseline v0, is a stable
+reference and MUST NOT be silently rewritten to change v0 semantics.
+
+Any semantic change after v0 acceptance MUST be introduced as an explicit
+amendment artifact or explicitly delimited amendment section that records:
+
+- amendment identifier (`amendment-N`);
+- base = `design baseline v0`;
+- reason for the amendment;
+- exact affected contract sections;
+- resulting disposition toward v1 ratification.
+
+An amendment does not retroactively redefine v0. It creates a visible
+successor step in the chain:
+
+```text
+design baseline v0
+-> amendment-N
+-> ...
+-> v1 ratification
+```
+
+Editorial corrections that can change interpretation MUST be treated as
+amendments rather than silent edits.
+
 # SOAM 2.0 — Permission Evidence Design Contract
 
 ## Status
