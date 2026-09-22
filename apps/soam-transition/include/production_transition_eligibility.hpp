@@ -9,6 +9,7 @@ namespace AdaptiveMesh {
 namespace detail {
 class ProductionTransitionConstructionAccess;
 class ProductionTransitionRequestDerivationAccess;
+class ProductionLiveValidityC1ConversionAccess;
 class ProductionAuthorityDerivationAccess;
 }
 
@@ -209,6 +210,7 @@ private:
     ProductionTransitionRequestBinding context_;
     bool satisfied_;
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionLiveValidityC1ConversionAccess;
 };
 
 class RevalidationPrerequisiteEvidence final {
@@ -226,6 +228,7 @@ private:
     ProductionTransitionRequestBinding context_;
     bool satisfied_;
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionLiveValidityC1ConversionAccess;
 };
 
 struct ProductionTransitionPrerequisiteSet {
