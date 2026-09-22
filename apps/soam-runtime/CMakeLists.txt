@@ -15,7 +15,8 @@ add_library(soam_runtime STATIC
     src/source_capture_id.cpp
     src/production_provenance_envelope.cpp
     src/retained_source_evidence.cpp
-    src/provenance_admissibility.cpp)
+    src/provenance_admissibility.cpp
+    src/versioned_interpretation.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 # D8B implementation revision is a reproducible digest of the implementation
@@ -35,8 +36,27 @@ configure_file(
     "${CMAKE_CURRENT_BINARY_DIR}/generated/d8b_implementation_revision.hpp"
     @ONLY)
 
+# D8D implementation revision is a reproducible digest of the versioned
+# interpretation implementation surface.
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/include/versioned_interpretation.hpp"
+    SOAM_D8D_PUBLIC_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/versioned_interpretation_internal.hpp"
+    SOAM_D8D_INTERNAL_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/versioned_interpretation.cpp"
+    SOAM_D8D_SOURCE_SHA)
+set(SOAM_D8D_IMPLEMENTATION_MANIFEST
+    "SOAM:D8D:IMPLEMENTATION-MANIFEST:V1\npublic=${SOAM_D8D_PUBLIC_SHA}\ninternal=${SOAM_D8D_INTERNAL_SHA}\nsource=${SOAM_D8D_SOURCE_SHA}\n")
+string(SHA256 SOAM_D8D_IMPLEMENTATION_REVISION_SHA
+    "${SOAM_D8D_IMPLEMENTATION_MANIFEST}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/d8d_implementation_revision.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/d8d_implementation_revision.hpp"
+    @ONLY)
+
 target_include_directories(soam_runtime
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include>
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 target_link_libraries(soam_runtime PUBLIC Threads::Threads)
@@ -63,7 +83,8 @@ foreach(test_target
         d7_provenance_gate_tests
         source_snapshot_tests
         provenance_envelope_tests
-        provenance_admissibility_tests)
+        provenance_admissibility_tests
+        versioned_interpretation_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
@@ -74,6 +95,8 @@ target_include_directories(source_snapshot_tests PRIVATE
 target_include_directories(provenance_envelope_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(provenance_admissibility_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(versioned_interpretation_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_test(
@@ -223,3 +246,49 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D8C raw envelope to admissible provenance misuse")
+
+
+add_test(
+    NAME reject_d8d_default_construct_decision_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8d_default_construct_decision_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8D InterpretationDecisionId default construction misuse")
+
+add_test(
+    NAME reject_d8d_construct_decision_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8d_construct_decision_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8D InterpretationDecisionId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8d_default_construct_interpretation
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8d_default_construct_interpretation.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8D VersionedProductionInterpretation default construction misuse")
+
+add_test(
+    NAME reject_d8d_construct_interpretation_from_observation
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8d_construct_interpretation_from_observation.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8D arbitrary observation/confidence trusted construction misuse")
+
+add_test(
+    NAME reject_d8d_default_construct_policy_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8d_default_construct_policy_snapshot.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8D interpretation policy snapshot default construction misuse")
