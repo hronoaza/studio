@@ -112,7 +112,8 @@ foreach(test_target
         versioned_interpretation_tests
         policy_persistence_tests
         policy_persistence_stream_tests
-        transition_live_snapshot_tests)
+        transition_live_snapshot_tests
+        transition_invariant_snapshot_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
