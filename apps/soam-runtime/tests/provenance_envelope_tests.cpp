@@ -179,6 +179,12 @@ int main() {
     requireNear(envelope->capacity(),snapshot->capacity());
     require(envelope->bridgeStatus()==snapshot->bridgeStatus());
     require(envelope->canonicalBytes().size()==369U);
+    require(envelope->canonicalBytes().at(50)==1U);
+    bool revisionNonZero=false;
+    for(std::size_t i=51U;i<83U;++i) {
+        revisionNonZero = revisionNonZero || envelope->canonicalBytes().at(i)!=0U;
+    }
+    require(revisionNonZero);
 
     const auto second=producer.produce(*snapshot);
     require(second.has_value());
