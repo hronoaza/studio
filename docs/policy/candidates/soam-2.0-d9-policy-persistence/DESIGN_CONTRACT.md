@@ -212,6 +212,12 @@ persistenceImplementationRevisionDigest
 
 The stream is directional.
 
+The semantic stream key identifies compatibility/continuity semantics; it does
+not uniquely identify one runtime stream incarnation. A separate restricted-
+origin `PersistenceStreamInstanceId` identifies each concrete live stream
+instance. Closing/resetting a stream and later creating another stream with the
+same semantic key must mint a new instance ID.
+
 D8C policy snapshot identity and D8D policy snapshot identity are preserved on
 each sample but are not by themselves the stream key.
 
@@ -397,7 +403,8 @@ Candidate production type:
 
 It owns:
 
-- immutable stream key;
+- immutable semantic stream key;
+- immutable PersistenceStreamInstanceId;
 - trusted PersistencePolicySnapshot;
 - one `BridgePersistence` instance;
 - last accepted stateVersion;
@@ -419,8 +426,19 @@ For v1 live semantics, a counted sample must satisfy:
 sample.stateVersion > streamStartStateVersion
 ```
 
-The bound is captured when the live stream is created from current trusted
-relationship state. It prevents a newly created stream, including one created
+The bound is captured when the live stream is created from one trusted,
+atomic relationship snapshot containing at least source/target node IDs,
+relationship generation, and stateVersion. The snapshot's relationship identity
+and generation must exactly match the semantic stream key before publication of
+the stream instance.
+
+The stream-creation snapshot must be obtained under the same consistency
+boundary used by the runtime to publish relationship generation and stateVersion;
+separate unsynchronized reads are not sufficient. If the relationship changes
+or disappears before a coherent creation snapshot can be established, stream
+creation fails closed.
+
+This prevents a newly created stream, including one created
 after an interpretation-policy or persistence-profile revision, from rebuilding
 a live persistence streak by replaying older retained captures.
 
@@ -478,7 +496,8 @@ Candidate result:
 Contents:
 
 - recommendation event ID;
-- stream key;
+- PersistenceStreamInstanceId;
+- semantic stream key;
 - persistence policy descriptor;
 - current `PersistentBridgeRecommendation`;
 - accepted PolicyEvidenceDecisionId;
@@ -522,7 +541,7 @@ In particular:
 
 ## 21. Reset semantics
 
-A production stream resets/terminates on:
+A production stream instance resets/terminates on:
 
 - relationship generation change;
 - interpretation policy semantic/revision change;
@@ -533,6 +552,10 @@ A production stream resets/terminates on:
 A mere D8D decision-ID change does not reset the stream.
 
 A mere D8C decision-ID change does not reset the stream.
+
+Any replacement stream created after termination/reset is a new stream instance,
+even if its semantic stream key is byte-for-byte identical. It receives a new
+`PersistenceStreamInstanceId` and a new trusted creation snapshot/epoch bound.
 
 ---
 
@@ -582,10 +605,15 @@ A future runtime manager may map:
 
 Registry semantics must be:
 
-- no duplicate live stream for one exact key;
+- no duplicate live stream for one exact semantic key;
+- one semantic key may have multiple historical stream instances, never more
+  than one live instance at a time;
+- every concrete stream instance has a unique PersistenceStreamInstanceId;
 - no implicit key collision fallback;
-- new relationship generation creates a new key;
-- closed streams are not silently reused.
+- new relationship generation creates a new semantic key;
+- closed stream instances are not silently reused;
+- reopening the same semantic key creates a fresh instance ID and fresh
+  creation-time epoch boundary.
 
 Whether closed stream history is persisted is separate from v1 in-memory
 runtime state.
@@ -673,19 +701,24 @@ Before implementation acceptance, tests should include at least:
 13. relationship generation change starts a fresh stream;
 14. interpretation policy revision change starts/requires a fresh stream;
 15. persistence profile revision change starts/requires a fresh stream;
-16. first activation sample stays PRESERVE;
-17. second valid activation sample becomes SUPPORT/CONSTRAIN as domain policy
+16. reset/close followed by recreation of the same semantic key produces a new
+    PersistenceStreamInstanceId and fresh epoch boundary;
+17. stream creation uses one coherent relationship-generation/stateVersion
+    snapshot and fails closed on lineage mismatch;
+18. first activation sample stays PRESERVE;
+19. second valid activation sample becomes SUPPORT/CONSTRAIN as domain policy
     specifies;
-18. direction reversal resets pending activation streak;
-19. SUPPORT release uses value <= +releaseThreshold;
-20. CONSTRAIN release uses value >= -releaseThreshold;
-21. release hysteresis matches accepted BridgePersistence behavior;
-22. duplicate/out-of-order/pre-epoch rejection leaves persistence state unchanged;
-23. concurrent observations cannot double-count one capture;
-24. result preserves all upstream lineage identities;
-25. recommendation cannot be constructed by arbitrary caller;
-26. recommendation does not create RequestedTransitionDirection;
-27. all D7/D8A/D8B/D8C/D8D/C2 regression suites remain green.
+20. direction reversal resets pending activation streak;
+21. SUPPORT release uses value <= +releaseThreshold;
+22. CONSTRAIN release uses value >= -releaseThreshold;
+23. release hysteresis matches accepted BridgePersistence behavior;
+24. duplicate/out-of-order/pre-epoch rejection leaves persistence state unchanged;
+25. concurrent observations cannot double-count one capture;
+26. result preserves all upstream lineage identities;
+27. recommendation preserves exact PersistenceStreamInstanceId;
+28. recommendation cannot be constructed by arbitrary caller;
+29. recommendation does not create RequestedTransitionDirection;
+30. all D7/D8A/D8B/D8C/D8D/C2 regression suites remain green.
 
 ---
 
@@ -731,7 +764,27 @@ Design response: every live stream has a trusted creation-time
 `streamStartStateVersion`; samples at or below that boundary are not counted.
 Historical/backfill processing is separate from live recommendation semantics.
 
-### R6 — restart continuity claim
+### R6 — stream-instance identity collapse
+
+The semantic stream key can recur after explicit reset, integrity-fault closure,
+or other lifecycle termination. Treating the key itself as the unique stream
+identity would make recommendation history and lifecycle provenance ambiguous.
+
+Design response: each concrete live stream has a restricted-origin
+`PersistenceStreamInstanceId`. Recreating the same semantic key creates a new
+instance ID and a fresh trusted epoch boundary.
+
+### R7 — non-atomic stream epoch capture
+
+If relationshipGeneration and streamStartStateVersion were read independently,
+a stream could bind an epoch from one live state to a relationship identity from
+another.
+
+Design response: stream creation consumes one coherent trusted relationship
+snapshot containing the relationship identity/generation and stateVersion, and
+fails closed if the snapshot does not match the semantic key.
+
+### R8 — restart continuity claim
 
 In-memory state cannot prove cross-restart persistence.
 
