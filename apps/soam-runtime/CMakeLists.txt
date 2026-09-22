@@ -413,3 +413,67 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D9 concrete persistence stream copy misuse")
+
+
+add_test(
+    NAME reject_d9_construct_stream_instance_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_construct_stream_instance_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 stream instance arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d9_construct_observation_decision_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_construct_observation_decision_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 observation decision arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d9_construct_stream_from_trusted_values
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_construct_stream_from_trusted_values.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 trusted stream direct construction misuse")
+
+add_test(
+    NAME reject_d9_move_persistence_stream
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_move_persistence_stream.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 concrete persistence stream move misuse")
+
+add_test(
+    NAME reject_d9_recommendation_to_requested_transition_direction
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_recommendation_to_requested_transition_direction.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 recommendation to transition direction misuse")
+
+add_test(
+    NAME reject_d9_raw_bridge_persistence_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_access_raw_bridge_persistence_from_handle.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 raw BridgePersistence surface misuse")
+
+add_test(
+    NAME reject_d9_caller_selected_persistence_policy
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_construct_policy_snapshot_with_caller_values.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 caller-selected trusted persistence policy misuse")
