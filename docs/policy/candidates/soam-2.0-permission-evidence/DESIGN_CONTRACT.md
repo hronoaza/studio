@@ -803,3 +803,238 @@ No trusted PermissionPrerequisiteEvidence is constructed.
 No prerequisite set is assembled.
 No eligibility decision is produced.
 No authority, capability, or execution boundary is crossed.
+
+
+## 44. Critical review — repository crypto baseline
+
+Repository review found no existing production dependency on:
+
+- OpenSSL;
+- libsodium;
+- an Ed25519 verification library;
+- EVP_PKEY Ed25519 APIs;
+- a repository-local asymmetric-signature implementation.
+
+Existing platform randomness support does not constitute a signature-verification
+stack.
+
+Therefore D V1 must not pretend that asymmetric verification is already an
+accepted dependency.
+
+Introducing crypto verification is an explicit architectural dependency decision.
+
+## 45. Critical review — canonical payload disposition
+
+The V1 payload should remain fixed-width binary and fully deterministic.
+
+Reviewed candidate layout:
+
+```text
+domainSeparator[30]
+formatMajor[u16-be]
+formatMinor[u16-be]
+attestationId[16]
+issuerId[16]
+requestDecisionId[16]
+sourceNodeId[u64-be]
+targetNodeId[u64-be]
+relationshipGeneration[u64-be]
+direction[u8]
+transitionClass[u64-be]
+stateVersion[u64-be]
+decision[u8]
+permissionPolicyId[16]
+permissionPolicyMajor[u16-be]
+permissionPolicyMinor[u16-be]
+```
+
+No optional fields.
+No padding.
+No native-endian encoding.
+No trailing bytes.
+No text serialization.
+
+The exact domain separator remains tied to the final V1 signature-profile
+acceptance.
+
+## 46. Critical review — no-time V1
+
+The no-time/no-expiry design remains coherent for V1 because the attestation is
+bound to:
+
+- requestDecisionId;
+- exact relationship generation;
+- exact stateVersion.
+
+A1 Freshness independently determines whether the request epoch is still
+current.
+
+Therefore D does not need a second wall-clock freshness channel in V1.
+
+This does not claim the attestation is permanently valid. It is meaningful only
+for the exact request object it signs.
+
+## 47. Critical review — no online revocation V1
+
+No online revocation lookup is retained for V1.
+
+Adding revocation would require accepted semantics for:
+
+- network availability;
+- stale revocation data;
+- fail-open vs fail-closed behavior;
+- cache lifetime;
+- issuer rotation.
+
+Those are not currently defined.
+
+V1 instead uses a narrow request-bound attestation and versioned trusted issuer
+set.
+
+Issuer/key rotation requires a new accepted permission-policy revision.
+
+## 48. Critical review — signed DENY
+
+A correctly signed trusted `DENY` is confirmed as a valid negative permission
+decision:
+
+```text
+signature valid
+issuer trusted
+request binding exact
+decision = DENY
+=> ProductionPermissionPrerequisiteRecord{satisfied=false}
+```
+
+This is not a verifier rejection.
+
+The distinction is required so C1 can later distinguish:
+
+```text
+permission explicitly denied
+```
+
+from:
+
+```text
+permission evidence malformed/untrusted/unavailable
+```.
+
+## 49. Critical review — policy claims are signed
+
+The permission policy ID and major/minor version remain inside the signed
+payload.
+
+This prevents a valid signature issued under one permission-policy context from
+being silently replayed under another policy revision.
+
+The verifier requires exact policy-claim equality with the accepted policy
+snapshot.
+
+## 50. Critical review — rejection precedence
+
+Candidate D V1 precedence after decision-ID establishment:
+
+1. RequestLineageInconsistent
+2. TransitionClassUnsupported
+3. PolicyRevisionUnrecognized
+4. AttestationMalformed
+5. IssuerUnrecognized
+6. SignatureInvalid
+7. RequestBindingMismatch
+8. InternalVerificationFailure
+
+A valid signed DENY is never a rejection.
+
+## 51. Critical review — trust-anchor shape
+
+For V1, the safest trust-anchor shape is a small immutable issuer registry in
+the accepted permission policy snapshot.
+
+The registry should not be populated from arbitrary caller input.
+
+Preferred production shape:
+
+```text
+PermissionVerificationPolicyV1
+-> fixed trusted issuer descriptors
+-> each descriptor = issuerId + publicKey
+```
+
+The exact issuer ID and public key are not yet defined and must not be invented
+by implementation.
+
+## 52. Critical review — signer separation
+
+The production D module remains verifier-only.
+
+No production target in `apps/soam-transition-permission/` may:
+
+- generate a signing key;
+- load a private signing key;
+- sign an attestation;
+- expose a helper that returns trusted permission records without signature
+  verification.
+
+If a signing utility is later needed, it must be a separate operator/tooling
+surface with separate provenance and must not be linked into the verifier
+library.
+
+## 53. Critical review — unresolved normative gates
+
+D V1 is not implementation-ready until three independent choices are accepted:
+
+### Gate D1 — signature profile
+
+Candidate:
+
+```text
+Ed25519
+public key = 32 bytes
+signature = 64 bytes
+```
+
+### Gate D2 — trust anchor
+
+Must provide:
+
+```text
+PermissionIssuerId
++
+exact trusted Ed25519 public key
+```
+
+The implementation must not fabricate these values.
+
+### Gate D3 — verification dependency
+
+A concrete production verification implementation must be selected.
+
+Acceptable categories:
+
+- system/library dependency with mature Ed25519 verification;
+- narrowly vendored audited implementation;
+- platform cryptographic provider where semantics are portable enough for the
+  supported build matrix.
+
+A home-grown Ed25519 implementation is rejected.
+
+## 54. Implementation readiness
+
+Until D1, D2, and D3 are accepted:
+
+```text
+D runtime implementation = BLOCKED
+```
+
+The rest of the design is sufficiently specified to proceed immediately once
+those trust decisions exist.
+
+## 55. Review STOP
+
+No executable permission verifier is added by this review.
+No signer is added.
+No PermissionPrerequisiteEvidence is constructed.
+No prerequisite set is assembled.
+No eligibility decision is produced.
+No authority, capability, or execution surface is opened.
