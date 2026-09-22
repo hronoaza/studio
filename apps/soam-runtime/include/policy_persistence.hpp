@@ -1,6 +1,7 @@
 #pragma once
 
 #include "adaptive_bridge_policy.hpp"
+#include "bridge_persistence.hpp"
 #include "versioned_interpretation.hpp"
 
 #include <array>
@@ -9,6 +10,7 @@
 #include <memory>
 #include <optional>
 #include <variant>
+#include <utility>
 
 namespace AdaptiveMesh {
 
