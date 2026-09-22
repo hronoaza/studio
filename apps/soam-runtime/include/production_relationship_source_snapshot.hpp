@@ -1,7 +1,10 @@
 #pragma once
 
+#include "source_capture_id.hpp"
+
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace AdaptiveMesh {
 
@@ -10,6 +13,10 @@ class SpatialAdaptiveMesh;
 
 class ProductionRelationshipSourceSnapshot final {
 public:
+    [[nodiscard]] const SourceCaptureId& sourceCaptureId() const noexcept {
+        return sourceCaptureId_;
+    }
+
     [[nodiscard]] std::size_t sourceNodeId() const noexcept { return sourceNodeId_; }
     [[nodiscard]] std::size_t targetNodeId() const noexcept { return targetNodeId_; }
     [[nodiscard]] std::uint64_t relationshipGeneration() const noexcept {
@@ -35,6 +42,7 @@ public:
 
 private:
     ProductionRelationshipSourceSnapshot(
+        SourceCaptureId sourceCaptureId,
         std::size_t sourceNodeId,
         std::size_t targetNodeId,
         std::uint64_t relationshipGeneration,
@@ -47,7 +55,8 @@ private:
         double targetState,
         double sourceHealth,
         double targetHealth) noexcept
-        : sourceNodeId_(sourceNodeId),
+        : sourceCaptureId_(std::move(sourceCaptureId)),
+          sourceNodeId_(sourceNodeId),
           targetNodeId_(targetNodeId),
           relationshipGeneration_(relationshipGeneration),
           stateVersion_(stateVersion),
@@ -60,6 +69,7 @@ private:
           sourceHealth_(sourceHealth),
           targetHealth_(targetHealth) {}
 
+    SourceCaptureId sourceCaptureId_;
     std::size_t sourceNodeId_;
     std::size_t targetNodeId_;
     std::uint64_t relationshipGeneration_;
