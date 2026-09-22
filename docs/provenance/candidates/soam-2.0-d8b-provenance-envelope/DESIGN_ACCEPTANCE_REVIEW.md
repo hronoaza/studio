@@ -7,7 +7,7 @@
 - Upstream Current Baseline: `379cd2e2cf17eb7181629945e670f7923ba662ce`
 - Executable D8B implementation: none
 - Review scope: architecture/design only
-- Disposition: **PASS — READY FOR EXPLICIT DESIGN ACCEPTANCE**
+- Disposition: **ACCEPTED — IMPLEMENTATION AUTHORIZED**
 
 ---
 
@@ -170,3 +170,22 @@ merge authorization: not granted by this review
 If explicit D8B design acceptance is granted, the next step is implementation on
 a controlled candidate branch followed by exact-head CI, conformance tests,
 negative misuse gates and audit.
+
+
+---
+
+## Explicit acceptance record
+
+The Root Operator explicitly accepted the D8B v1 design after this review.
+
+Recorded consequence:
+
+```text
+D8B design: accepted
+runtime implementation: authorized on controlled candidate branch
+PR #12 merge: not implied by design acceptance
+Current Baseline: unchanged by this acceptance record
+```
+
+Implementation proceeds separately in PR #14 against the accepted D8A Current
+Baseline.
