@@ -199,5 +199,38 @@ int main() {
     require(successes == 1U);
     require(duplicates == 1U);
 
+    // Relationship removal terminates the old stream instance.
+    mesh.pruneIsolatedBridges(1.1);
+    const auto afterRemoval = reopened->observe(concurrentEvidence);
+    require(afterRemoval.has_value());
+    require(std::holds_alternative<ProductionPersistenceRejection>(
+        *afterRemoval));
+    require(std::get<ProductionPersistenceRejection>(*afterRemoval)
+        .primaryReason() ==
+            ProductionPersistenceReason::WrongRelationship);
+
+    // The lifecycle rejection closes the instance; stale handle is now dead.
+    require(!reopened->observe(concurrentEvidence).has_value());
+
+    // Recreate the relationship: the new generation cannot reuse old stream state.
+    mesh.connectNodes(0,1);
+    const auto newGenerationSeed = makeEvidence(mesh, store, {0,1});
+    require(newGenerationSeed.relationshipGeneration() !=
+        concurrentEvidence.relationshipGeneration());
+
+    const auto newGenerationStream =
+        registry.openLiveStream(newGenerationSeed, *persistencePolicy);
+    require(newGenerationStream.has_value());
+    require(newGenerationStream->instanceId() != reopened->instanceId());
+
+    const auto newGenerationHistorical =
+        newGenerationStream->observe(newGenerationSeed);
+    require(newGenerationHistorical.has_value());
+    require(std::holds_alternative<ProductionPersistenceRejection>(
+        *newGenerationHistorical));
+    require(std::get<ProductionPersistenceRejection>(
+        *newGenerationHistorical).primaryReason() ==
+            ProductionPersistenceReason::PreStreamEpochStateVersion);
+
     return 0;
 }
