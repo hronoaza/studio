@@ -1162,8 +1162,8 @@ bool SpatialAdaptiveMesh::revalidateTransitionSnapshot(
 } // namespace AdaptiveMesh
 
 
-std::optional<ProductionTransitionLiveSnapshot>
-SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
+std::optional<AdaptiveMesh::ProductionTransitionLiveSnapshot>
+AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
     std::size_t sourceNodeId,
     std::size_t targetNodeId) const
 {
@@ -1185,7 +1185,7 @@ SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
         });
 
     if (found == bridges.end()) {
-        return ProductionTransitionLiveSnapshot{
+        return AdaptiveMesh::ProductionTransitionLiveSnapshot{
             sourceNodeId,
             targetNodeId,
             impl_->transitionStateVersion,
@@ -1194,7 +1194,7 @@ SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
         };
     }
 
-    return ProductionTransitionLiveSnapshot{
+    return AdaptiveMesh::ProductionTransitionLiveSnapshot{
         sourceNodeId,
         targetNodeId,
         impl_->transitionStateVersion,
