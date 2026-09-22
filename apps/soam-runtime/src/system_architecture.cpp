@@ -1,6 +1,8 @@
 #include "system_architecture.hpp"
 #include "production_transition_evaluator.hpp"
 #include "detail/production_transition_evaluation_binding.hpp"
+#include "detail/policy_persistence_binding.hpp"
+#include "policy_persistence.hpp"
 #include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
@@ -898,11 +900,15 @@ struct SpatialAdaptiveMesh::Impl {
 SpatialAdaptiveMesh::SpatialAdaptiveMesh(std::size_t maxWorkers)
     : impl_(std::make_unique<Impl>(maxWorkers)),
       transitionEvaluationBinding_(
-          detail::makeProductionTransitionEvaluationBinding(this))
+          detail::makeProductionTransitionEvaluationBinding(this)),
+      persistenceRegistryState_(
+          detail::makeProductionPersistenceRegistryState(this))
 {
 }
 
 SpatialAdaptiveMesh::~SpatialAdaptiveMesh() {
+    detail::invalidateProductionPersistenceRegistryState(
+        persistenceRegistryState_);
     detail::invalidateProductionTransitionEvaluationBinding(
         transitionEvaluationBinding_);
 }
@@ -1031,6 +1037,46 @@ ProductionTransitionEvaluator
 SpatialAdaptiveMesh::productionTransitionEvaluator() const noexcept {
     return ProductionTransitionEvaluator{transitionEvaluationBinding_};
 }
+
+ProductionBridgePersistenceRegistry
+SpatialAdaptiveMesh::productionBridgePersistenceRegistry() const noexcept {
+    return ProductionBridgePersistenceRegistry{persistenceRegistryState_};
+}
+
+std::optional<SpatialAdaptiveMesh::PersistenceCreationSnapshot>
+SpatialAdaptiveMesh::capturePersistenceCreationSnapshot(
+    std::size_t sourceNodeId,
+    std::size_t targetNodeId) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (sourceNodeId >= impl_->nodes.size() ||
+        targetNodeId >= impl_->nodes.size() ||
+        sourceNodeId == targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& bridges = impl_->nodes[sourceNodeId].bridges;
+    const auto found = std::find_if(
+        bridges.begin(),
+        bridges.end(),
+        [targetNodeId](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(targetNodeId);
+        });
+
+    if (found == bridges.end()) {
+        return std::nullopt;
+    }
+
+    return PersistenceCreationSnapshot{
+        sourceNodeId,
+        targetNodeId,
+        found->generation,
+        impl_->transitionStateVersion
+    };
+}
+
 
 bool SpatialAdaptiveMesh::transitionLocatorIsValid(
     std::size_t sourceNodeId,
