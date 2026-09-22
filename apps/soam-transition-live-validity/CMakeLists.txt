@@ -56,3 +56,129 @@ target_include_directories(
 add_test(
     NAME run_transition_live_validity_tests
     COMMAND transition_live_validity_tests)
+
+
+add_test(
+    NAME reject_live_validity_default_parent_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_parent_id.cpp
+        "live validity parent decision ID default construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_freshness_id_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/construct_freshness_id_from_bytes.cpp
+        "freshness decision ID raw-byte construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_default_freshness_record
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_freshness_record.cpp
+        "freshness record direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_default_revalidation_record
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_revalidation_record.cpp
+        "revalidation record direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_default_evidence
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_evidence.cpp
+        "live validity evidence direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_forged_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/forge_snapshot.cpp
+        "forged runtime snapshot construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_eligibility_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_eligibility_api.cpp
+        "live validity eligibility surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_permission_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_permission_api.cpp
+        "live validity permission surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_live_validity_mutation_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_mutation_api.cpp
+        "live snapshot mutation surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
