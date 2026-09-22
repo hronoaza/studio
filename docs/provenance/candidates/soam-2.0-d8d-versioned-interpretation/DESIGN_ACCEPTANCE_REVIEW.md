@@ -7,7 +7,7 @@
   `391536d444eeac8f7284f30f4e6241b1d944560c`
 - Runtime changes: none
 - Scope: D8D structure + InterpretationPolicyV1 semantics
-- Disposition: **PASS — READY FOR EXPLICIT DESIGN ACCEPTANCE**
+- Disposition: **ACCEPTED — IMPLEMENTATION AUTHORIZED**
 
 ---
 
@@ -201,3 +201,23 @@ overall D8D design: READY FOR EXPLICIT DESIGN ACCEPTANCE
 implementation authorization: pending explicit acceptance
 merge authorization: not granted by this review
 ```
+
+
+---
+
+## Explicit acceptance record
+
+The Root Operator explicitly accepted the D8D v1 design and
+InterpretationPolicyV1 after final review.
+
+Recorded consequence:
+
+```text
+D8D design: accepted
+InterpretationPolicyV1 semantics: accepted
+runtime implementation: authorized on controlled candidate branch
+PR #17 merge: not implied by design acceptance
+Current Baseline: unchanged by this acceptance record
+```
+
+Implementation must remain separate from this documentation-only design PR.
