@@ -3,6 +3,8 @@
 #include "detail/production_transition_evaluation_binding.hpp"
 #include "detail/policy_persistence_binding.hpp"
 #include "policy_persistence.hpp"
+#include "production_transition_live_snapshot.hpp"
+#include "detail/production_transition_live_snapshot_binding.hpp"
 #include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
@@ -902,13 +904,17 @@ SpatialAdaptiveMesh::SpatialAdaptiveMesh(std::size_t maxWorkers)
       transitionEvaluationBinding_(
           detail::makeProductionTransitionEvaluationBinding(this)),
       persistenceRegistryState_(
-          detail::makeProductionPersistenceRegistryState(this))
+          detail::makeProductionPersistenceRegistryState(this)),
+      transitionLiveSnapshotBinding_(
+          detail::makeProductionTransitionLiveSnapshotBinding(this))
 {
 }
 
 SpatialAdaptiveMesh::~SpatialAdaptiveMesh() {
     detail::invalidateProductionPersistenceRegistryState(
         persistenceRegistryState_);
+    detail::invalidateProductionTransitionLiveSnapshotBinding(
+        transitionLiveSnapshotBinding_);
     detail::invalidateProductionTransitionEvaluationBinding(
         transitionEvaluationBinding_);
 }
@@ -1043,6 +1049,12 @@ SpatialAdaptiveMesh::productionBridgePersistenceRegistry() const noexcept {
     return ProductionBridgePersistenceRegistry{persistenceRegistryState_};
 }
 
+ProductionTransitionLiveSnapshotSource
+SpatialAdaptiveMesh::productionTransitionLiveSnapshotSource() const noexcept {
+    return ProductionTransitionLiveSnapshotSource{
+        transitionLiveSnapshotBinding_};
+}
+
 std::optional<SpatialAdaptiveMesh::PersistenceCreationSnapshot>
 SpatialAdaptiveMesh::capturePersistenceCreationSnapshot(
     std::size_t sourceNodeId,
@@ -1148,3 +1160,45 @@ bool SpatialAdaptiveMesh::revalidateTransitionSnapshot(
 }
 
 } // namespace AdaptiveMesh
+
+
+std::optional<ProductionTransitionLiveSnapshot>
+SpatialAdaptiveMesh::captureTransitionLiveValiditySnapshot(
+    std::size_t sourceNodeId,
+    std::size_t targetNodeId) const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    if (sourceNodeId >= impl_->nodes.size() ||
+        targetNodeId >= impl_->nodes.size() ||
+        sourceNodeId == targetNodeId) {
+        return std::nullopt;
+    }
+
+    const auto& bridges = impl_->nodes[sourceNodeId].bridges;
+    const auto found = std::find_if(
+        bridges.begin(),
+        bridges.end(),
+        [targetNodeId](const SpatialBridge& bridge) {
+            return bridge.targetNodeId ==
+                static_cast<int>(targetNodeId);
+        });
+
+    if (found == bridges.end()) {
+        return ProductionTransitionLiveSnapshot{
+            sourceNodeId,
+            targetNodeId,
+            impl_->transitionStateVersion,
+            false,
+            std::nullopt
+        };
+    }
+
+    return ProductionTransitionLiveSnapshot{
+        sourceNodeId,
+        targetNodeId,
+        impl_->transitionStateVersion,
+        true,
+        found->generation
+    };
+}
