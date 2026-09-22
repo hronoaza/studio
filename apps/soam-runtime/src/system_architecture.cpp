@@ -7,6 +7,8 @@
 #include "detail/production_transition_live_snapshot_binding.hpp"
 #include "production_transition_invariant_snapshot.hpp"
 #include "detail/production_transition_invariant_snapshot_binding.hpp"
+#include "production_transition_resilience_snapshot.hpp"
+#include "detail/production_transition_resilience_snapshot_binding.hpp"
 #include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
@@ -910,7 +912,9 @@ SpatialAdaptiveMesh::SpatialAdaptiveMesh(std::size_t maxWorkers)
       transitionLiveSnapshotBinding_(
           detail::makeProductionTransitionLiveSnapshotBinding(this)),
       transitionInvariantSnapshotBinding_(
-          detail::makeProductionTransitionInvariantSnapshotBinding(this))
+          detail::makeProductionTransitionInvariantSnapshotBinding(this)),
+      transitionResilienceSnapshotBinding_(
+          detail::makeProductionTransitionResilienceSnapshotBinding(this))
 {
 }
 
@@ -921,6 +925,8 @@ SpatialAdaptiveMesh::~SpatialAdaptiveMesh() {
         transitionLiveSnapshotBinding_);
     detail::invalidateProductionTransitionInvariantSnapshotBinding(
         transitionInvariantSnapshotBinding_);
+    detail::invalidateProductionTransitionResilienceSnapshotBinding(
+        transitionResilienceSnapshotBinding_);
     detail::invalidateProductionTransitionEvaluationBinding(
         transitionEvaluationBinding_);
 }
@@ -1065,6 +1071,12 @@ ProductionTransitionInvariantSnapshotSource
 SpatialAdaptiveMesh::productionTransitionInvariantSnapshotSource() const noexcept {
     return ProductionTransitionInvariantSnapshotSource{
         transitionInvariantSnapshotBinding_};
+}
+
+ProductionTransitionResilienceSnapshotSource
+SpatialAdaptiveMesh::productionTransitionResilienceSnapshotSource() const noexcept {
+    return ProductionTransitionResilienceSnapshotSource{
+        transitionResilienceSnapshotBinding_};
 }
 
 std::optional<SpatialAdaptiveMesh::PersistenceCreationSnapshot>
@@ -1285,5 +1297,77 @@ AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionInvariantSnapshot(
         source.invariant.maxEpsilon,
         target.invariant.baseline,
         target.invariant.maxEpsilon
+    };
+}
+
+
+std::optional<AdaptiveMesh::ProductionTransitionResilienceSnapshot>
+AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionResilienceSnapshot() const
+{
+    std::shared_lock lock(impl_->topologyMutex);
+
+    std::vector<std::size_t> nodeIds;
+    nodeIds.reserve(impl_->nodes.size());
+    for (const auto& node : impl_->nodes) {
+        nodeIds.push_back(node.id);
+    }
+
+    std::vector<std::pair<std::size_t,std::size_t>> keys;
+    for (std::size_t sourceNodeId=0; sourceNodeId<impl_->nodes.size(); ++sourceNodeId) {
+        for (const auto& bridge : impl_->nodes[sourceNodeId].bridges) {
+            if (bridge.targetNodeId < 0 ||
+                bridge.targetNodeId >= static_cast<int>(impl_->nodes.size()) ||
+                bridge.targetNodeId == static_cast<int>(sourceNodeId)) {
+                return std::nullopt;
+            }
+            const auto targetNodeId =
+                static_cast<std::size_t>(bridge.targetNodeId);
+            keys.emplace_back(
+                std::min(sourceNodeId,targetNodeId),
+                std::max(sourceNodeId,targetNodeId));
+        }
+    }
+
+    std::sort(keys.begin(),keys.end());
+    keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
+
+    std::vector<ProductionTransitionResilienceRelationshipSnapshot>
+        relationships;
+    relationships.reserve(keys.size());
+
+    for (const auto& [nodeA,nodeB] : keys) {
+        std::vector<ProductionTransitionResilienceDirectedEdgeSnapshot> aToB;
+        std::vector<ProductionTransitionResilienceDirectedEdgeSnapshot> bToA;
+
+        for (const auto& bridge : impl_->nodes[nodeA].bridges) {
+            if (bridge.targetNodeId == static_cast<int>(nodeB)) {
+                aToB.push_back(
+                    ProductionTransitionResilienceDirectedEdgeSnapshot{
+                        nodeA,nodeB,bridge.generation,bridge.capacity,
+                        bridge.distance,bridge.orientationWeight,bridge.status
+                    });
+            }
+        }
+
+        for (const auto& bridge : impl_->nodes[nodeB].bridges) {
+            if (bridge.targetNodeId == static_cast<int>(nodeA)) {
+                bToA.push_back(
+                    ProductionTransitionResilienceDirectedEdgeSnapshot{
+                        nodeB,nodeA,bridge.generation,bridge.capacity,
+                        bridge.distance,bridge.orientationWeight,bridge.status
+                    });
+            }
+        }
+
+        relationships.push_back(
+            ProductionTransitionResilienceRelationshipSnapshot{
+                nodeA,nodeB,std::move(aToB),std::move(bToA)
+            });
+    }
+
+    return ProductionTransitionResilienceSnapshot{
+        impl_->transitionStateVersion,
+        std::move(nodeIds),
+        std::move(relationships)
     };
 }
