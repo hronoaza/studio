@@ -7,7 +7,7 @@
   `09b531bc2950a1e219872b7f6291212bdb3b80f3`
 - Runtime changes: none
 - Scope: D8C architecture/design
-- Disposition: **PASS — READY FOR EXPLICIT DESIGN ACCEPTANCE**
+- Disposition: **ACCEPTED — IMPLEMENTATION AUTHORIZED**
 
 ---
 
@@ -161,3 +161,22 @@ merge authorization: not granted by this review
 
 If explicitly accepted, implementation should proceed on a separate candidate
 branch from Current Baseline, with PR #15 retained as the design artifact.
+
+
+---
+
+## Explicit acceptance record
+
+The Root Operator explicitly accepted the D8C v1 design after this review.
+
+Recorded consequence:
+
+```text
+D8C design: accepted
+supporting-contract implementation: authorized
+D8C runtime implementation: authorized on controlled candidate branch
+PR #15 merge: not implied by design acceptance
+Current Baseline: unchanged by this acceptance record
+```
+
+Implementation proceeds separately from Current Baseline.
