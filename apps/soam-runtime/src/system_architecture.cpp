@@ -1252,23 +1252,25 @@ AdaptiveMesh::SpatialAdaptiveMesh::captureTransitionInvariantSnapshot(
     std::optional<ProductionTransitionInvariantBridgeSnapshot> reverse;
 
     if (forwardIt != source.bridges.end()) {
-        forward.emplace(
+        forward = ProductionTransitionInvariantBridgeSnapshot{
             targetNodeId,
             forwardIt->generation,
             forwardIt->capacity,
             forwardIt->distance,
             forwardIt->orientationWeight,
-            forwardIt->status);
+            forwardIt->status
+        };
     }
 
     if (reverseIt != target.bridges.end()) {
-        reverse.emplace(
+        reverse = ProductionTransitionInvariantBridgeSnapshot{
             sourceNodeId,
             reverseIt->generation,
             reverseIt->capacity,
             reverseIt->distance,
             reverseIt->orientationWeight,
-            reverseIt->status);
+            reverseIt->status
+        };
     }
 
     return ProductionTransitionInvariantSnapshot{
