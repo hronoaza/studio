@@ -62,3 +62,143 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
+
+
+add_executable(
+    transition_invariant_tests
+    tests/transition_invariant_tests.cpp)
+target_link_libraries(
+    transition_invariant_tests
+    PRIVATE soam_transition_invariant)
+target_include_directories(
+    transition_invariant_tests
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_test(
+    NAME run_transition_invariant_tests
+    COMMAND transition_invariant_tests)
+
+
+add_test(
+    NAME reject_invariant_default_decision_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_decision_id.cpp
+        "invariant decision ID default construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_default_policy_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_policy_snapshot.cpp
+        "invariant policy snapshot direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_default_record
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_record.cpp
+        "invariant record direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_forged_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/forge_snapshot.cpp
+        "forged invariant snapshot construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_c1_evidence
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/construct_c1_invariant.cpp
+        "C1 invariant evidence direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_transition_class
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/construct_transition_class.cpp
+        "raw transition class construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_eligibility_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_eligibility_api.cpp
+        "invariant eligibility surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_permission_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_permission_api.cpp
+        "invariant permission surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_invariant_mutation_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_mutation_api.cpp
+        "invariant snapshot mutation surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
