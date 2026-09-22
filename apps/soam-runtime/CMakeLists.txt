@@ -20,7 +20,8 @@ add_library(soam_runtime STATIC
     src/policy_persistence.cpp
     src/policy_persistence_stream.cpp
     src/production_transition_live_snapshot.cpp
-    src/production_transition_invariant_snapshot.cpp)
+    src/production_transition_invariant_snapshot.cpp
+    src/production_transition_resilience_snapshot.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 # D8B implementation revision is a reproducible digest of the implementation
