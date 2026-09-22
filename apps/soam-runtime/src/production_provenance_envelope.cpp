@@ -51,6 +51,37 @@ constexpr Id128 kDepDigestProfile{
     0x15,0xc1,0xac,0xd8,0x42,0xab,0xf0,0xd0
 };
 
+#ifndef SOAM_D8B_IMPLEMENTATION_REVISION_SHA
+#error "SOAM_D8B_IMPLEMENTATION_REVISION_SHA must be supplied by the build"
+#endif
+
+[[nodiscard]] constexpr std::uint8_t hexNibble(char value) {
+    if (value >= '0' && value <= '9') {
+        return static_cast<std::uint8_t>(value - '0');
+    }
+    if (value >= 'a' && value <= 'f') {
+        return static_cast<std::uint8_t>(value - 'a' + 10);
+    }
+    if (value >= 'A' && value <= 'F') {
+        return static_cast<std::uint8_t>(value - 'A' + 10);
+    }
+    return 0xffU;
+}
+
+[[nodiscard]] constexpr Digest256 implementationRevisionDigest() {
+    constexpr const char* hex = SOAM_D8B_IMPLEMENTATION_REVISION_SHA;
+    Digest256 digest{};
+    for (std::size_t i = 0; i < digest.size(); ++i) {
+        const std::uint8_t high = hexNibble(hex[i * 2U]);
+        const std::uint8_t low = hexNibble(hex[i * 2U + 1U]);
+        digest[i] = static_cast<std::uint8_t>((high << 4U) | low);
+    }
+    return digest;
+}
+
+constexpr Digest256 kImplementationRevision =
+    implementationRevisionDigest();
+
 std::atomic<ProvenanceItemIdFillFunction> testFillFunction{nullptr};
 std::atomic_bool forceCanonicalFailure{false};
 std::atomic_bool forceDigestFailure{false};
@@ -482,7 +513,7 @@ ProductionProvenanceEnvelopeProducer::produce(
 
     detail::CanonicalEnvelopeInput input{
         detail::kSchemaId, 1, 0, 1,
-        detail::kProducerId, 1, 0, 0, {},
+        detail::kProducerId, 1, 0, 1, detail::kImplementationRevision,
         *itemBytes,
         snapshot.sourceCaptureId().bytes(),
         static_cast<std::uint64_t>(snapshot.sourceNodeId()),
