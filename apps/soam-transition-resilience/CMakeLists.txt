@@ -61,3 +61,143 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 enable_testing()
+
+
+add_executable(
+    transition_resilience_tests
+    tests/transition_resilience_tests.cpp)
+target_link_libraries(
+    transition_resilience_tests
+    PRIVATE soam_transition_resilience)
+target_include_directories(
+    transition_resilience_tests
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_test(
+    NAME run_transition_resilience_tests
+    COMMAND transition_resilience_tests)
+
+
+add_test(
+    NAME reject_resilience_default_decision_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_decision_id.cpp
+        "resilience decision ID default construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_default_policy_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_policy_snapshot.cpp
+        "resilience policy snapshot direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_default_record
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/default_construct_record.cpp
+        "resilience record direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_forged_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/forge_snapshot.cpp
+        "forged resilience snapshot construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_c1_evidence
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/construct_c1_resilience.cpp
+        "C1 resilience evidence direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_transition_class
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/construct_transition_class.cpp
+        "raw transition class construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_eligibility_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_eligibility_api.cpp
+        "resilience eligibility surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_permission_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_permission_api.cpp
+        "resilience permission surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_resilience_mutation_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_mutation_api.cpp
+        "resilience mutation surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition-request/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
