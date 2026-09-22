@@ -16,7 +16,8 @@ add_library(soam_runtime STATIC
     src/production_provenance_envelope.cpp
     src/retained_source_evidence.cpp
     src/provenance_admissibility.cpp
-    src/versioned_interpretation.cpp)
+    src/versioned_interpretation.cpp
+    src/policy_persistence.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 # D8B implementation revision is a reproducible digest of the implementation
@@ -53,6 +54,23 @@ configure_file(
     "${CMAKE_CURRENT_BINARY_DIR}/generated/d8d_implementation_revision.hpp"
     @ONLY)
 
+# D9 implementation revision is a reproducible digest of the policy-evidence
+# and persistence-policy implementation surface.
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/include/policy_persistence.hpp"
+    SOAM_D9_PUBLIC_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/policy_persistence_internal.hpp"
+    SOAM_D9_INTERNAL_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/policy_persistence.cpp"
+    SOAM_D9_SOURCE_SHA)
+set(SOAM_D9_IMPLEMENTATION_MANIFEST
+    "SOAM:D9:IMPLEMENTATION-MANIFEST:V1\npublic=${SOAM_D9_PUBLIC_SHA}\ninternal=${SOAM_D9_INTERNAL_SHA}\nsource=${SOAM_D9_SOURCE_SHA}\n")
+string(SHA256 SOAM_D9_IMPLEMENTATION_REVISION_SHA
+    "${SOAM_D9_IMPLEMENTATION_MANIFEST}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/d9_implementation_revision.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/d9_implementation_revision.hpp"
+    @ONLY)
+
 target_include_directories(soam_runtime
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -84,7 +102,8 @@ foreach(test_target
         source_snapshot_tests
         provenance_envelope_tests
         provenance_admissibility_tests
-        versioned_interpretation_tests)
+        versioned_interpretation_tests
+        policy_persistence_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
@@ -97,6 +116,8 @@ target_include_directories(provenance_envelope_tests PRIVATE
 target_include_directories(provenance_admissibility_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(versioned_interpretation_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(policy_persistence_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_test(
@@ -292,3 +313,40 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D8D interpretation policy snapshot default construction misuse")
+
+
+add_test(
+    NAME reject_d9_default_construct_policy_evidence_decision_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_default_construct_policy_evidence_decision_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 PolicyEvidenceDecisionId default construction misuse")
+
+add_test(
+    NAME reject_d9_construct_policy_evidence_decision_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_construct_policy_evidence_decision_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 PolicyEvidenceDecisionId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d9_default_construct_policy_evidence
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_default_construct_policy_evidence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 policy evidence default construction misuse")
+
+add_test(
+    NAME reject_d9_default_construct_persistence_policy_snapshot
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_default_construct_persistence_policy_snapshot.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D9 persistence policy snapshot default construction misuse")
