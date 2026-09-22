@@ -9,7 +9,7 @@
 - Upstream baseline: accepted D8B Provenance Envelope
   (`09b531bc2950a1e219872b7f6291212bdb3b80f3`)
 - Downstream dependency: future D8D Versioned Interpretation
-- Acceptance status: design-review pending
+- Acceptance status: design-review revised / supporting-contracts defined
 - Authority effect: none
 
 This document defines the executable analogue of the formal admissibility
@@ -166,12 +166,12 @@ If no retained source evidence is available:
 
 D8B's `SourceBinding` does not by itself satisfy this predicate.
 
-### P7 — LineageRecognized
+### P7 — SourceLineageConsistent
 
 Meaning:
 
-> relationship incarnation and state-version lineage are structurally
-> recognized by the source evidence used for re-derivation.
+> SourceCaptureId, relationship incarnation and state-version lineage exactly
+> match the independently retained source evidence used for re-derivation.
 
 D8C v1 does **not** require the envelope to describe the latest live runtime
 state.
@@ -219,15 +219,29 @@ Candidate type:
 It supplies policy/state required to decide admissibility but does not carry
 authority.
 
+The policy side of one evaluation is represented by one immutable:
+
+`ProvenanceAdmissibilityPolicySnapshot`
+
 Conceptual contents:
 
 ```text
-ProvenanceAdmissibilityContext
+ProvenanceAdmissibilityPolicySnapshot
+├── policySnapshotId
 ├── AdmissibilityPolicyDescriptor
-├── ProducerRegistry
-├── SchemaRegistry
-├── DependencyRegistry
-└── SourceEvidenceResolver
+├── ProducerRegistrySnapshot
+├── SchemaRegistrySnapshot
+└── DependencyRegistrySnapshot
+```
+
+The source resolver is supplied alongside this immutable policy snapshot.
+
+Required invariant:
+
+```text
+one evaluation
+-> one policySnapshotId
+-> one coherent producer/schema/dependency policy state
 ```
 
 No component may issue transition capability or commit production state.
@@ -385,6 +399,24 @@ containing at least:
 
 The record must originate outside the envelope being checked.
 
+Accepted v1 origin:
+
+```text
+restricted-origin D8A ProductionRelationshipSourceSnapshot
+-> SourceEvidenceRecorder
+-> immutable RetainedSourceEvidenceRecord
+-> SourceEvidenceStore
+```
+
+The D8B envelope and retained record are sibling products of the same D8A
+capture event.
+
+A retained record MUST NOT be created from:
+
+- D8B envelope accessors;
+- canonical envelope bytes;
+- D8C evaluation inputs.
+
 Returning the envelope's own fields as its "independent source record" is not
 re-derivation.
 
@@ -456,7 +488,21 @@ Required properties:
 - no new caller-controlled constructor;
 - no canonical byte-layout change;
 - no interpretation;
-- no admissibility result.
+- no admissibility result;
+- generated from the same immutable structured construction input that produces
+  the canonical envelope bytes.
+
+Required consistency invariant:
+
+```text
+one D8B structured construction input
+-> typed metadata view
+-> canonical bytes
+-> CanonicalDigest
+```
+
+D8C must validate the canonical digest before a positive decision may rely on
+the metadata view.
 
 This is an API visibility amendment, not a new provenance semantic layer.
 
@@ -534,7 +580,20 @@ It must remain distinct from:
 A future D8D interpretation should retain the decision identity/policy version
 that admitted its source provenance.
 
-Generation mechanism is deferred to implementation design.
+Candidate v1 ownership/generation:
+
+- D8C-owned;
+- 128-bit opaque identity;
+- OS-backed random generation family;
+- all-zero invalid;
+- not caller-selectable;
+- distinct from SourceCaptureId / ProvenanceItemId / CanonicalDigest.
+
+A completed accepted or rejected decision carries one decision identity so one
+evaluation event can be correlated in audit evidence.
+
+If a valid decision identity cannot be obtained, no positive admissibility
+object is published.
 
 ---
 
@@ -576,9 +635,14 @@ The rejection type carries no authority effect.
 
 Positive result requires all required predicates to pass.
 
-For diagnostics, the evaluator may collect more than one local failure reason.
+For diagnostics, the evaluator may collect more than one local failure reason
+that is available without external resolution.
 
-However external resolution/provider failures must not be retried indefinitely.
+Production v1 uses short-circuit fail-closed evaluation. The source resolver is
+invoked at most once per evaluation and is not called after an earlier terminal
+local predicate has already made positive admission impossible.
+
+External resolution/provider failures must not be retried indefinitely.
 
 Candidate deterministic primary-reason precedence:
 
@@ -605,17 +669,20 @@ No failure reason may be reinterpreted as success.
 Candidate fail-closed ordering:
 
 ```text
-1. validate policy/context availability
+1. obtain one immutable ProvenanceAdmissibilityPolicySnapshot
 2. obtain typed D8B metadata view
 3. recompute/compare CanonicalDigest
 4. check producer recognition
 5. check schema compatibility
 6. check every dependency
 7. reject legacy interpretation dependency
-8. resolve retained source evidence by SourceCaptureId
+8. resolve retained source evidence once by SourceCaptureId
 9. compare source binding + measurements bit-exactly
-10. construct restricted-origin AdmissibleProductionProvenance
-11. STOP
+10. mint AdmissibilityDecisionId
+11. construct restricted-origin D8C decision result
+12. accepted path publishes AdmissibleProductionProvenance
+13. rejected path publishes ProvenanceAdmissibilityRejection
+14. STOP
 ```
 
 No D8D interpretation occurs inside this sequence.
@@ -643,10 +710,10 @@ D8C is a decision/evidence gate only.
 
 The D8B envelope is immutable.
 
-The admissibility context must provide stable registry/resolver snapshots for one
-evaluation event.
+The evaluator receives one immutable
+`ProvenanceAdmissibilityPolicySnapshot` for the entire evaluation.
 
-A positive result must not combine:
+A result must not combine:
 
 - producer registry from policy revision A;
 - schema registry from policy revision B;
@@ -658,10 +725,12 @@ Required invariant:
 
 ```text
 one admissibility decision
+-> one policySnapshotId
 -> one coherent policy/context revision
 ```
 
-How that snapshot is represented is deferred to implementation design.
+The source resolver may be external, but the policy used to classify its result
+does not drift during the decision.
 
 ---
 
@@ -779,16 +848,21 @@ Before implementation acceptance, tests should include at least:
 
 ## 25. Current positive-path blocker
 
-A full positive D8C implementation is intentionally blocked until two supporting
-contracts exist:
+A full positive D8C implementation is intentionally blocked until the
+supporting contracts are accepted and implemented:
 
-1. typed immutable D8B metadata view;
-2. independent retained source-evidence resolver/record contract.
-
-Without both, D8C may implement only negative/fail-closed checks.
+1. typed immutable D8B `ProvenanceMetadataView`;
+2. restricted-origin `RetainedSourceEvidenceRecord`;
+3. `SourceEvidenceStore/Resolver`;
+4. immutable `ProvenanceAdmissibilityPolicySnapshot`;
+5. D8C-owned decision identity/result API.
 
 The architecture must not fake `ReDerivable(x)` by comparing an envelope to
 itself.
+
+A D8B envelope may exist successfully while independent source retention is
+missing. In that case D8C rejects it as not re-derivable; it does not reconstruct
+a retained record from the envelope.
 
 ---
 
@@ -839,10 +913,11 @@ AdmissibleProductionProvenance != authority capability
 
 Before D8C implementation begins:
 
-1. review/accept this admissibility decomposition;
-2. design the D8B typed `ProvenanceMetadataView` amendment;
-3. design retained `SourceEvidenceRecord` + `SourceEvidenceResolver`;
-4. define admissibility policy/registry snapshot semantics;
-5. define `AdmissibilityDecisionId` generation;
-6. define restricted-origin C++ result/rejection API;
-7. only then implement and validate D8C.
+1. accept/reject the revised admissibility decomposition;
+2. accept/reject the D8B `ProvenanceMetadataView` amendment contract;
+3. accept/reject the retained source-evidence contract;
+4. fix exact admissibility policy/registry snapshot semantics;
+5. fix exact `AdmissibilityDecisionId` implementation design;
+6. define restricted-origin C++ success/rejection API;
+7. implement the required D8B/source-retention supporting boundaries first;
+8. only then implement and validate the positive D8C path.
