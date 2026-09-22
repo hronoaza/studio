@@ -16,6 +16,21 @@ add_library(soam_runtime STATIC
     src/production_provenance_envelope.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
+# D8B implementation revision is a reproducible digest of the implementation
+# source surface, independent of build directory and documentation-only commits.
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/include/production_provenance_envelope.hpp"
+    SOAM_D8B_PUBLIC_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/detail/provenance_envelope_internal.hpp"
+    SOAM_D8B_INTERNAL_SHA)
+file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/src/production_provenance_envelope.cpp"
+    SOAM_D8B_SOURCE_SHA)
+set(SOAM_D8B_IMPLEMENTATION_MANIFEST
+    "SOAM:D8B:IMPLEMENTATION-MANIFEST:V1\npublic=${SOAM_D8B_PUBLIC_SHA}\ninternal=${SOAM_D8B_INTERNAL_SHA}\nsource=${SOAM_D8B_SOURCE_SHA}\n")
+string(SHA256 SOAM_D8B_IMPLEMENTATION_REVISION_SHA
+    "${SOAM_D8B_IMPLEMENTATION_MANIFEST}")
+target_compile_definitions(soam_runtime PRIVATE
+    SOAM_D8B_IMPLEMENTATION_REVISION_SHA="\"${SOAM_D8B_IMPLEMENTATION_REVISION_SHA}\"")
+
 target_include_directories(soam_runtime PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
