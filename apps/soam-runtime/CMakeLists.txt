@@ -458,7 +458,8 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d9_recommendation_to_requested_transition_direction.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
-        "D9 recommendation to transition direction misuse")
+        "D9 recommendation to transition direction misuse"
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
 
 add_test(
     NAME reject_d9_raw_bridge_persistence_surface
