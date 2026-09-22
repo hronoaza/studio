@@ -281,10 +281,11 @@ No serialization framework defaults are normative.
 
 ---
 
-## 12. Current D8A correspondence
+## 12. Accepted D8A correspondence
 
-The reviewed D8A candidate supplies:
+Current Baseline `379cd2e2cf17eb7181629945e670f7923ba662ce` supplies:
 
+- restricted-origin `SourceCaptureId` as 16 opaque bytes;
 - source/target IDs as `std::size_t`;
 - relationship generation as `std::uint64_t`;
 - state version as `std::uint64_t`;
@@ -293,10 +294,11 @@ The reviewed D8A candidate supplies:
 - source/target state as `double`;
 - source/target health as `double`.
 
-The D8A amendment proposed by the D8B design additionally supplies a
-restricted-origin `SourceCaptureId`.
+CanonicalEnvelopeV1 preserves the accepted `SourceCaptureId` bytes exactly.
 
-This wire contract does not modify PR #8.
+The wire format still normalizes platform-dependent source/target
+`std::size_t` values to portable `u64` and maps `BridgeStatus` through the
+schema-owned wire-tag registry.
 
 ---
 
