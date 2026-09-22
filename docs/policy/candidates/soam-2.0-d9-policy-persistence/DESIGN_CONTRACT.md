@@ -3,17 +3,23 @@
 ## Status
 
 - Layer: D9 — Policy Evidence / Persistence / Recommendation
-- Document class: design-contract candidate
-- Executable implementation: none
-- Current Baseline effect: none
-- Upstream baseline: accepted D8D Versioned Interpretation
+- Document class: reviewed design contract / implementation provenance
+- Design origin baseline: accepted D8D Versioned Interpretation
   (`0f8a71444e17c0f17ae66ee3aed01f0a8395166e`)
-- Acceptance status: design-review pending
+- Accepted D9 runtime baseline:
+  `fa83f337ccabf8c0197eb4fcb3e1ddec26f61ec7`
+- Accepted implementation PR: #20
+- Accepted implementation head:
+  `b8a164a7fba2fa702630326633d00312cbc32ccc`
+- Acceptance status: design reviewed; implementation accepted and merged
+- Final implementation CI: 8/8 required workflows completed successfully on
+  the exact accepted implementation head before merge
 - Authority effect: none
 
-D9 connects accepted versioned interpretation to the already accepted domain
-policy and persistence primitives without allowing recommendation to become
-permission or execution.
+This document records the design basis and acceptance provenance for the D9
+runtime now present in the accepted baseline. D9 connects accepted versioned
+interpretation to the accepted domain policy and persistence primitives without
+allowing recommendation to become permission or execution.
 
 ---
 
@@ -1367,3 +1373,33 @@ Implementation remains a separate gate and must:
 4. preserve all D7/D8A/D8B/D8C/D8D/C2 regression suites;
 5. remain non-authoritative: recommendation still does not become request,
    eligibility, permission, authority, or execution.
+
+
+---
+
+## 34. Accepted implementation provenance
+
+The D9 implementation was reviewed and accepted separately from this design
+branch.
+
+Acceptance evidence:
+
+- design PR: #19;
+- implementation PR: #20;
+- implementation candidate head:
+  `b8a164a7fba2fa702630326633d00312cbc32ccc`;
+- merge commit / accepted D9 runtime baseline:
+  `fa83f337ccabf8c0197eb4fcb3e1ddec26f61ec7`;
+- implementation PR merged only after pre-acceptance audit;
+- all eight required exact-head validation workflows completed successfully:
+  D7 Provenance Gate, D8A Source Capture, D8B Provenance Envelope,
+  D8C Provenance Admissibility, D8D Versioned Interpretation,
+  Runtime Validation, Live Evaluator Validation, and
+  D9 Policy Persistence Validation;
+- compile-fail coverage includes the restricted-origin and authority-separation
+  boundaries defined by this contract;
+- the accepted runtime preserves
+  `recommendation != request != eligibility != permission != authority != execution`.
+
+The design branch itself contains no executable D9 runtime implementation. Its
+purpose after runtime acceptance is durable architecture and audit provenance.
