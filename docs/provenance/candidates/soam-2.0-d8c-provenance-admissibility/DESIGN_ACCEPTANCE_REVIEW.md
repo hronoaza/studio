@@ -180,3 +180,21 @@ Current Baseline: unchanged by this acceptance record
 ```
 
 Implementation proceeds separately from Current Baseline.
+
+
+---
+
+## Explicit acceptance record
+
+The Root Operator explicitly accepted the D8C v1 design after this review.
+
+Recorded consequence:
+
+```text
+D8C design: accepted
+runtime/supporting implementation: authorized on controlled candidate branch
+PR #15 merge: not implied by design acceptance
+Current Baseline: unchanged by this acceptance record
+```
+
+Implementation must remain separate from this documentation-only design PR.
