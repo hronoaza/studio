@@ -793,15 +793,397 @@ lifetime unless a later persistent store is added.
 
 ---
 
-## 31. Next gates
+## 31. Candidate restricted-origin C++ API contract
+
+This section fixes the public construction/ownership boundaries before any
+runtime implementation exists. Names are candidate API names; the semantic
+constraints are normative for D9 v1.
+
+### 31.1 D9A decision identity
+
+```cpp
+class PolicyEvidenceDecisionId final {
+public:
+    using Bytes = std::array<std::uint8_t, 16>;
+
+    PolicyEvidenceDecisionId(const PolicyEvidenceDecisionId&) noexcept = default;
+    PolicyEvidenceDecisionId& operator=(const PolicyEvidenceDecisionId&) noexcept = default;
+
+    [[nodiscard]] const Bytes& bytes() const noexcept;
+
+private:
+    explicit PolicyEvidenceDecisionId(Bytes) noexcept;
+
+    friend class ProductionBridgePolicyEvidenceEvaluator;
+};
+```
+
+Required properties:
+
+- no public default constructor;
+- no public construction from raw bytes;
+- all-zero is invalid;
+- generated only by the D9A evaluator through the same OS-backed/random-family
+  discipline used by existing restricted-origin production IDs.
+
+### 31.2 D9A trusted evidence wrapper
+
+```cpp
+class ProductionBridgePolicyEvidence final {
+public:
+    [[nodiscard]] const PolicyEvidenceDecisionId& decisionId() const noexcept;
+    [[nodiscard]] const BridgePolicyEvidence& evidence() const noexcept;
+    [[nodiscard]] const VersionedProductionInterpretation&
+        interpretation() const noexcept;
+
+    [[nodiscard]] const SourceCaptureId& sourceCaptureId() const noexcept;
+    [[nodiscard]] const ProvenanceItemId& provenanceItemId() const noexcept;
+    [[nodiscard]] const AdmissibilityDecisionId&
+        admissibilityDecisionId() const noexcept;
+    [[nodiscard]] const InterpretationDecisionId&
+        interpretationDecisionId() const noexcept;
+
+    [[nodiscard]] std::size_t sourceNodeId() const noexcept;
+    [[nodiscard]] std::size_t targetNodeId() const noexcept;
+    [[nodiscard]] std::uint64_t relationshipGeneration() const noexcept;
+    [[nodiscard]] std::uint64_t stateVersion() const noexcept;
+
+private:
+    ProductionBridgePolicyEvidence(
+        PolicyEvidenceDecisionId,
+        BridgePolicyEvidence,
+        VersionedProductionInterpretation) noexcept;
+
+    friend class ProductionBridgePolicyEvidenceEvaluator;
+};
+```
+
+The wrapper owns/copies the accepted D8D interpretation rather than accepting
+caller-supplied lineage fields independently. Convenience accessors project
+lineage from that owned trusted interpretation. This avoids constructor-level
+possibilities for mixed IDs, generation, or stateVersion.
+
+### 31.3 D9A evaluator result
+
+```cpp
+enum class ProductionPolicyEvidenceReason : std::uint8_t {
+    UpstreamLineageInconsistent,
+    EvidenceInvariantViolation,
+    InternalDeterministicEvaluationFailure
+};
+
+class ProductionPolicyEvidenceRejection final {
+    // restricted-origin rejection carrying the attempted D8D decision identity
+    // and a reason/flags representation
+};
+
+using ProductionPolicyEvidenceResult =
+    std::variant<
+        ProductionBridgePolicyEvidence,
+        ProductionPolicyEvidenceRejection>;
+
+class ProductionBridgePolicyEvidenceEvaluator final {
+public:
+    [[nodiscard]] std::optional<ProductionPolicyEvidenceResult> evaluate(
+        const VersionedProductionInterpretation& interpretation) const;
+};
+```
+
+`std::nullopt` is reserved for inability to establish the required restricted-
+origin decision identity/internal production precondition, matching the
+fail-closed style already used by upstream production stages.
+
+The evaluator has no policy arguments. It must use accepted
+`AdaptiveBridgePolicy::evaluate(observation, confidence)` exactly; allowing a
+caller-selected D9A policy object would create an unauthorized semantic input
+that D9A does not own.
+
+### 31.4 Persistence policy identities
+
+Candidate restricted-origin identities:
+
+```cpp
+class PersistenceProfileId final { /* opaque 128-bit identity */ };
+class PersistencePolicySnapshotId final { /* opaque 128-bit publication ID */ };
+
+struct PersistencePolicyDescriptor final {
+    PersistenceProfileId profileId;
+    std::uint16_t majorVersion;
+    std::uint16_t minorVersion;
+    std::uint8_t implementationRevisionKind;
+    std::array<std::uint8_t, 32> implementationRevision;
+};
+```
+
+Candidate trusted snapshot:
+
+```cpp
+class PersistencePolicySnapshot final {
+public:
+    [[nodiscard]] const PersistencePolicySnapshotId& snapshotId() const noexcept;
+    [[nodiscard]] const PersistencePolicyDescriptor& descriptor() const noexcept;
+    [[nodiscard]] double activationThreshold() const noexcept;
+    [[nodiscard]] double releaseThreshold() const noexcept;
+    [[nodiscard]] std::size_t activationSamples() const noexcept;
+    [[nodiscard]] std::size_t releaseSamples() const noexcept;
+
+private:
+    // private validated constructor
+    friend class ProductionPersistencePolicyProvider;
+};
+
+class ProductionPersistencePolicyProvider final {
+public:
+    [[nodiscard]] static std::optional<PersistencePolicySnapshot>
+        createCurrent();
+};
+```
+
+No public API accepts raw threshold/sample values to create a trusted production
+snapshot. The v1 provider owns the candidate 0.50/0.25/2/2 production choice.
+
+### 31.5 Semantic stream key
+
+Candidate value:
+
+```cpp
+class ProductionPersistenceStreamKey final {
+public:
+    // read-only accessors for every exact field fixed in section 8
+    friend bool operator==(
+        const ProductionPersistenceStreamKey&,
+        const ProductionPersistenceStreamKey&) noexcept = default;
+
+private:
+    // private constructor from trusted D9A evidence + persistence descriptor
+    friend class ProductionBridgePersistenceRegistry;
+};
+```
+
+The key is not accepted from arbitrary caller fields when creating a trusted
+stream. It is derived from:
+
+- the trusted relationship identity/generation carried by D9A evidence;
+- the exact D8D interpretation semantic descriptor;
+- the exact trusted D9 persistence descriptor.
+
+### 31.6 Stream instance identity
+
+```cpp
+class PersistenceStreamInstanceId final {
+public:
+    using Bytes = std::array<std::uint8_t, 16>;
+    [[nodiscard]] const Bytes& bytes() const noexcept;
+
+private:
+    explicit PersistenceStreamInstanceId(Bytes) noexcept;
+    friend class ProductionBridgePersistenceRegistry;
+};
+```
+
+No public default/raw-byte constructor. Every concrete stream creation mints a
+new ID, including recreation of a byte-identical semantic key.
+
+### 31.7 Trusted creation snapshot
+
+D9 must not synthesize the stream epoch from unrelated reads.
+
+Candidate trusted runtime view:
+
+```cpp
+struct PersistenceStreamCreationSnapshot final {
+    std::size_t sourceNodeId;
+    std::size_t targetNodeId;
+    std::uint64_t relationshipGeneration;
+    std::uint64_t stateVersion;
+};
+```
+
+This plain representation is not itself sufficient authority to create a stream.
+The registry obtains the values through a restricted runtime binding/factory that
+captures them atomically under the mesh consistency boundary.
+
+The registry must verify:
+
+```text
+snapshot.source/target == stream key source/target
+snapshot.relationshipGeneration == stream key relationshipGeneration
+```
+
+before stream publication.
+
+### 31.8 Stateful stream ownership
+
+Candidate type:
+
+```cpp
+class ProductionBridgePersistenceStream final {
+public:
+    ProductionBridgePersistenceStream(
+        const ProductionBridgePersistenceStream&) = delete;
+    ProductionBridgePersistenceStream& operator=(
+        const ProductionBridgePersistenceStream&) = delete;
+
+    [[nodiscard]] const PersistenceStreamInstanceId&
+        instanceId() const noexcept;
+    [[nodiscard]] const ProductionPersistenceStreamKey&
+        key() const noexcept;
+    [[nodiscard]] std::uint64_t streamStartStateVersion() const noexcept;
+
+    [[nodiscard]] ProductionPersistenceObservationResult observe(
+        const ProductionBridgePolicyEvidence& evidence);
+
+private:
+    // private construction only by registry
+    // owns mutex, BridgePersistence, de-duplication set, ordering state
+    friend class ProductionBridgePersistenceRegistry;
+};
+```
+
+The stream object is stateful infrastructure, not a freely copyable value. A
+move operation may be omitted entirely in v1 to keep mutex/address/lifecycle
+identity stable.
+
+### 31.9 Observation result
+
+Candidate rejection enum:
+
+```cpp
+enum class ProductionPersistenceReason : std::uint8_t {
+    WrongRelationship,
+    WrongRelationshipGeneration,
+    WrongInterpretationPolicy,
+    WrongPersistenceProfile,
+    PreStreamEpochStateVersion,
+    DuplicateSourceCapture,
+    NonIncreasingStateVersion,
+    LineageInconsistent,
+    EvidenceInvariantViolation,
+    StreamClosed,
+    InternalPersistenceFailure
+};
+```
+
+Candidate immutable success record:
+
+```cpp
+class ProductionPersistentBridgeRecommendation final {
+public:
+    [[nodiscard]] const RecommendationEventId& eventId() const noexcept;
+    [[nodiscard]] const PersistenceStreamInstanceId&
+        streamInstanceId() const noexcept;
+    [[nodiscard]] const ProductionPersistenceStreamKey& streamKey() const noexcept;
+    [[nodiscard]] PersistentBridgeRecommendation recommendation() const noexcept;
+    [[nodiscard]] const PolicyEvidenceDecisionId&
+        policyEvidenceDecisionId() const noexcept;
+    [[nodiscard]] const SourceCaptureId& sourceCaptureId() const noexcept;
+    [[nodiscard]] std::uint64_t stateVersion() const noexcept;
+
+private:
+    // private constructor; only a validated stream transition may mint this
+    friend class ProductionBridgePersistenceStream;
+};
+
+class ProductionPersistenceRejection final {
+    // immutable stream-instance identity, attempted evidence identity,
+    // primary reason + reason flags; restricted-origin
+};
+
+using ProductionPersistenceObservationResult =
+    std::variant<
+        ProductionPersistentBridgeRecommendation,
+        ProductionPersistenceRejection>;
+```
+
+A successful observation emits one immutable recommendation event even when the
+enumerated recommendation value did not change. This preserves the exact
+accepted sample/event lineage without implying a topology transition.
+
+### 31.10 Registry/factory boundary
+
+Candidate owner:
+
+```cpp
+class ProductionBridgePersistenceRegistry final {
+public:
+    [[nodiscard]] std::optional<ProductionPersistenceStreamHandle>
+        openLiveStream(
+            const ProductionBridgePolicyEvidence& seedLineage,
+            const PersistencePolicySnapshot& policy);
+
+    // explicit close/reset operations require a concrete instance identity;
+    // they do not accept only the semantic key.
+};
+```
+
+The exact handle representation remains an implementation design choice, but v1
+must satisfy:
+
+- registry owns stream lifetime;
+- at most one live instance per exact semantic key;
+- lookup by semantic key cannot silently return a closed instance;
+- close/reset targets a `PersistenceStreamInstanceId`;
+- stream creation obtains its own fresh coherent runtime snapshot;
+- `seedLineage` establishes relationship/policy identity only and is not itself
+  counted as an observation;
+- no `BridgePersistence::observe()` occurs during stream creation;
+- stream creation does not emit a recommendation.
+
+This avoids an off-by-one persistence bug where the evidence used to identify
+and open a stream would accidentally become activation sample #1.
+
+### 31.11 Restricted-origin compile-fail contract
+
+Before runtime acceptance, compile-fail tests must prove arbitrary callers cannot:
+
+1. default-construct or raw-byte construct `PolicyEvidenceDecisionId`;
+2. directly construct `ProductionBridgePolicyEvidence`;
+3. directly construct a trusted `PersistencePolicySnapshot`;
+4. raw-byte/default construct `PersistenceStreamInstanceId`;
+5. construct a trusted stream from a caller-created semantic key/snapshot;
+6. copy a `ProductionBridgePersistenceStream`;
+7. directly construct `ProductionPersistentBridgeRecommendation`;
+8. turn a recommendation into `RequestedTransitionDirection` through any D9
+   API;
+9. invoke raw `BridgePersistence` through the D9 production surface;
+10. supply caller-selected activation/release values to a trusted v1 stream.
+
+### 31.12 API-level atomicity rule
+
+For an accepted observation, the following state transition is one serialized
+critical section:
+
+```text
+validate stream identity/epoch/order/de-duplication
+-> BridgePersistence::observe()
+-> record SourceCaptureId
+-> advance lastAcceptedStateVersion
+-> mint immutable recommendation event
+```
+
+If a pre-`observe()` validation fails, none of the state changes occur.
+
+Because current `BridgePersistence::observe()` is `noexcept`, mutation after
+the validation boundary can be designed so allocation/event preparation that
+may fail occurs before mutating the domain persistence state. The implementation
+design must preserve strong fail-closed semantics rather than allowing a
+successful internal `observe()` followed by failure to record its replay/order
+metadata.
+
+---
+
+## 32. Remaining gates before implementation
+
+The earlier stream-key, anti-replay, epoch, stream-instance and policy-value
+design questions are now resolved at design-contract level.
 
 Before D9 implementation:
 
-1. critically review stream-key semantics;
-2. accept/revise SourceCaptureId + stateVersion anti-replay rule;
-3. accept/revise PersistencePolicyV1 values;
-4. define exact restricted-origin C++ evidence/recommendation API;
-5. define stream lifecycle/registry API;
-6. define persistence policy identity/revision;
-7. perform final design acceptance review;
-8. only then implement on a separate candidate branch.
+1. critically review this exact C++ API ownership surface;
+2. resolve the concrete stream-handle/lifetime representation;
+3. resolve allocation strategy needed for strong atomic observation semantics;
+4. define exact recommendation/rejection event-ID types and reason-flag layout;
+5. define the restricted runtime binding used for coherent stream-creation
+   snapshots;
+6. perform final D9 API design acceptance review;
+7. only then implement on a separate candidate branch.
