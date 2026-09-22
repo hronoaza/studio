@@ -186,3 +186,16 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
+
+
+add_test(
+    NAME reject_transition_request_preserve_to_direction
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/preserve_to_requested_direction.cpp
+        "PRESERVE recommendation to requested transition direction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-runtime/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-transition/include)
