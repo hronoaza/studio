@@ -140,6 +140,27 @@ ProductionBridgePersistenceStream::streamStartStateVersion() const noexcept
 }
 
 std::optional<ProductionPersistenceObservationResult>
+ProductionBridgePersistenceStream::rejectWithoutMutation(
+    const ProductionBridgePolicyEvidence& evidence,
+    ProductionPersistenceReason reason)
+{
+    std::lock_guard lock(impl_->mutex);
+
+    const auto decisionBytes = detail::tryGenerateD9OpaqueIdBytes();
+    if (!decisionBytes.has_value()) return std::nullopt;
+
+    return ProductionPersistenceObservationResult{
+        ProductionPersistenceRejection{
+            PersistenceObservationDecisionId{*decisionBytes},
+            impl_->instanceId,
+            evidence.decisionId(),
+            reason,
+            persistenceReasonFlag(reason)
+        }
+    };
+}
+
+std::optional<ProductionPersistenceObservationResult>
 ProductionBridgePersistenceStream::observe(
     const ProductionBridgePolicyEvidence& evidence)
 {
@@ -339,7 +360,8 @@ private:
     ProductionBridgePersistenceStream* stream_ = nullptr;
 };
 
-class ProductionPersistenceRegistryState final {
+class ProductionPersistenceRegistryState final
+    : public std::enable_shared_from_this<ProductionPersistenceRegistryState> {
 public:
     explicit ProductionPersistenceRegistryState(
         SpatialAdaptiveMesh* owner) noexcept
@@ -378,6 +400,7 @@ public:
             for (const auto& entry : liveStreams_) {
                 if (entry.stream->key() == key) {
                     return ProductionPersistenceStreamHandle{
+                        shared_from_this(),
                         entry.binding,
                         entry.stream->instanceId()
                     };
@@ -422,6 +445,7 @@ public:
         for (const auto& entry : liveStreams_) {
             if (entry.stream->key() == key) {
                 return ProductionPersistenceStreamHandle{
+                    shared_from_this(),
                     entry.binding,
                     entry.stream->instanceId()
                 };
@@ -440,9 +464,54 @@ public:
 
         const auto& published = liveStreams_.back();
         return ProductionPersistenceStreamHandle{
+            shared_from_this(),
             published.binding,
             published.stream->instanceId()
         };
+    }
+
+    [[nodiscard]] std::optional<ProductionPersistenceObservationResult>
+    observe(
+        const std::shared_ptr<ProductionPersistenceStreamBindingState>& binding,
+        const ProductionBridgePolicyEvidence& evidence)
+    {
+        std::optional<ProductionPersistenceObservationResult> result;
+        std::optional<PersistenceStreamInstanceId> closeInstance;
+
+        {
+            auto streamLease = PersistenceStreamLease::acquire(binding);
+            if (!streamLease) return std::nullopt;
+
+            auto ownerLease = acquireOwnerLease();
+            if (!ownerLease.has_value()) return std::nullopt;
+
+            const auto& key = streamLease.stream().key();
+            const auto snapshot =
+                ownerLease->owner().capturePersistenceCreationSnapshot(
+                    key.sourceNodeId(),
+                    key.targetNodeId());
+
+            if (!snapshot.has_value()) {
+                result = streamLease.stream().rejectWithoutMutation(
+                    evidence,
+                    ProductionPersistenceReason::WrongRelationship);
+                closeInstance = streamLease.stream().instanceId();
+            } else if (
+                snapshot->relationshipGeneration !=
+                    key.relationshipGeneration()) {
+                result = streamLease.stream().rejectWithoutMutation(
+                    evidence,
+                    ProductionPersistenceReason::WrongRelationshipGeneration);
+                closeInstance = streamLease.stream().instanceId();
+            } else {
+                return streamLease.stream().observe(evidence);
+            }
+        }
+
+        if (closeInstance.has_value()) {
+            static_cast<void>(close(*closeInstance));
+        }
+        return result;
     }
 
     [[nodiscard]] bool close(
@@ -596,9 +665,8 @@ std::optional<ProductionPersistenceObservationResult>
 ProductionPersistenceStreamHandle::observe(
     const ProductionBridgePolicyEvidence& evidence) const
 {
-    auto lease = detail::PersistenceStreamLease::acquire(state_);
-    if (!lease) return std::nullopt;
-    return lease.stream().observe(evidence);
+    if (!registryState_) return std::nullopt;
+    return registryState_->observe(state_, evidence);
 }
 
 std::optional<ProductionPersistenceStreamHandle>
