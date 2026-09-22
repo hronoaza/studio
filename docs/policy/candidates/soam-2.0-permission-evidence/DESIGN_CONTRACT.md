@@ -1455,3 +1455,67 @@ review record:
 - two-artifact ceremony/key provenance model.
 
 Executable D remains blocked until D1/D3 and D2 are separately accepted.
+
+
+## 69. Governance home V1
+
+For V1, permission-policy governance records live in the accepted `main`
+history of this repository.
+
+The governance ordering is the first-parent ancestry of accepted merge commits
+on `main`.
+
+A governance event is identified by its exact merge commit SHA plus its
+first-parent position relative to other accepted governance events.
+
+This V1 model requires the governance branch to be protected against force-push
+and history rewrite.
+
+No separate ledger service and no independent monotonic counter are introduced
+for V1.
+
+If repository governance can no longer guarantee append-only accepted history,
+this V1 governance-sequence model is invalid and must be revised before new
+production policy admission.
+
+## 70. Ratification record trust V1
+
+V1 ratification records do not introduce a second signature PKI.
+
+A `ProductionPermissionPolicyRatificationRecord` derives its trust from:
+
+```text
+reviewed policy artifact
++ reviewed ratification record
++ accepted merge into protected main
++ exact immutable git provenance
+```
+
+CI may validate syntax, digests, canonical encodings, and consistency, but CI is
+not the Policy Ratifier.
+
+The permission issuer Ed25519 credential does not sign or self-ratify the policy
+that trusts that issuer.
+
+Adding cryptographic signatures to governance records in a later version is a
+separate governance-policy change and must define what the new signature means.
+
+## 71. Design freeze disposition
+
+With sections 69 and 70, the D design baseline has no remaining blocker for the
+initial D1/D3 implementation slice.
+
+The first D1/D3 implementation is intentionally limited to:
+
+- strict 145-byte PermissionAttestationV1 parser;
+- fixed-size parsed payload/signature types;
+- one Ed25519 verification primitive backed by libsodium;
+- frozen positive/negative interoperability vectors;
+- test-only trust fixtures;
+- no production issuer key;
+- no D2 ceremony artifact;
+- no production activation path;
+- no D -> C1 adapter yet.
+
+Further governance elaboration is deferred until required by a concrete
+implementation or D2 ceremony.
