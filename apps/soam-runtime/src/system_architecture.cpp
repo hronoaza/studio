@@ -1,6 +1,7 @@
 #include "system_architecture.hpp"
 #include "production_transition_evaluator.hpp"
 #include "detail/production_transition_evaluation_binding.hpp"
+#include "detail/source_capture_id_internal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -978,6 +979,14 @@ std::optional<ProductionRelationshipSourceSnapshot>
 SpatialAdaptiveMesh::captureProductionRelationshipSourceSnapshot(
     const ProductionRelationshipLocator& locator) const
 {
+    const auto captureIdBytes =
+        detail::tryGenerateSourceCaptureIdBytes();
+    if (!captureIdBytes.has_value()) {
+        return std::nullopt;
+    }
+
+    SourceCaptureId captureId{*captureIdBytes};
+
     std::shared_lock lock(impl_->topologyMutex);
 
     if (locator.sourceNodeId >= impl_->nodes.size() ||
@@ -1002,6 +1011,7 @@ SpatialAdaptiveMesh::captureProductionRelationshipSourceSnapshot(
     }
 
     return ProductionRelationshipSourceSnapshot{
+        std::move(captureId),
         locator.sourceNodeId,
         locator.targetNodeId,
         found->generation,
