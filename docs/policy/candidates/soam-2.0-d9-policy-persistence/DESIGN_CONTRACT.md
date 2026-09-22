@@ -201,8 +201,13 @@ relationshipGeneration
 interpretationPolicyId
 interpretationPolicyMajor
 interpretationPolicyMinor
-interpretationImplementationRevision
-persistenceProfileId/version
+interpretationImplementationRevisionKind
+interpretationImplementationRevisionDigest
+persistenceProfileId
+persistenceProfileMajor
+persistenceProfileMinor
+persistenceImplementationRevisionKind
+persistenceImplementationRevisionDigest
 ```
 
 The stream is directional.
@@ -338,12 +343,18 @@ Candidate descriptor:
 PersistenceProfileId
 majorVersion
 minorVersion
-implementationRevision
+implementationRevisionKind
+implementationRevisionDigest
 activationThreshold
 releaseThreshold
 activationSamples
 releaseSamples
 ```
+
+The persistence-profile semantic identity used by the stream key is the exact
+tuple of profile ID, major/minor version, implementation revision kind, and
+implementation revision digest. Snapshot/publication event identity is not a
+substitute for this semantic identity.
 
 ---
 
@@ -366,8 +377,11 @@ D9 explicitly classifies them as a new versioned production-policy choice.
 The rationale for v1:
 
 - activation requires two consecutive strong samples;
-- release requires two consecutive samples crossing the smaller hysteresis
-  boundary;
+- release uses the exact direction-dependent predicates already implemented by
+  `BridgePersistence`: while SUPPORT is active, a release sample is
+  `value <= +releaseThreshold`; while CONSTRAIN is active, a release sample is
+  `value >= -releaseThreshold`;
+- two consecutive release-predicate samples are required to return to PRESERVE;
 - `releaseThreshold < activationThreshold` provides hysteresis;
 - the smallest accepted sample count (2) still prevents one-shot activation.
 
@@ -393,6 +407,26 @@ It owns:
 
 One stream represents one directed relationship incarnation under one semantic
 interpretation revision and persistence profile.
+
+Each newly created live stream also owns an immutable observation-epoch lower
+bound:
+
+`streamStartStateVersion`
+
+For v1 live semantics, a counted sample must satisfy:
+
+```text
+sample.stateVersion > streamStartStateVersion
+```
+
+The bound is captured when the live stream is created from current trusted
+relationship state. It prevents a newly created stream, including one created
+after an interpretation-policy or persistence-profile revision, from rebuilding
+a live persistence streak by replaying older retained captures.
+
+Historical/backfill evaluation, if introduced later, must use a separate
+explicit mode and must not emit a live
+`ProductionPersistentBridgeRecommendation`.
 
 ---
 
@@ -421,12 +455,13 @@ Candidate `observe` sequence:
 ```text
 1. verify D9A evidence lineage belongs to this stream key
 2. verify exact persistence policy/profile
-3. reject duplicate SourceCaptureId
-4. require stateVersion > lastAcceptedStateVersion
-5. call accepted BridgePersistence::observe(evidence)
-6. atomically record SourceCaptureId + stateVersion + resulting recommendation
-7. publish immutable recommendation record
-8. STOP
+3. require stateVersion > streamStartStateVersion
+4. reject duplicate SourceCaptureId
+5. require stateVersion > lastAcceptedStateVersion
+6. call accepted BridgePersistence::observe(evidence)
+7. atomically record SourceCaptureId + stateVersion + resulting recommendation
+8. publish immutable recommendation record
+9. STOP
 ```
 
 No state mutation occurs before all potentially failing validation/preparation
@@ -509,6 +544,7 @@ Candidate rejection reasons:
 - WrongRelationshipGeneration;
 - WrongInterpretationPolicy;
 - WrongPersistenceProfile;
+- PreStreamEpochStateVersion;
 - DuplicateSourceCapture;
 - NonIncreasingStateVersion;
 - LineageInconsistent;
@@ -628,20 +664,28 @@ Before implementation acceptance, tests should include at least:
 7. same SourceCaptureId with another ProvenanceItemId does not count twice;
 8. same source stateVersion with distinct SourceCaptureId does not count twice;
 9. strictly newer stateVersion may count;
-10. relationship generation change starts a fresh stream;
-11. interpretation policy revision change starts/requires a fresh stream;
-12. persistence profile revision change starts/requires a fresh stream;
-13. first activation sample stays PRESERVE;
-14. second valid activation sample becomes SUPPORT/CONSTRAIN as domain policy
+10. a capture at/before streamStartStateVersion cannot seed a newly created
+    live stream;
+11. interpretation-policy revision cannot rebuild a live streak from pre-stream
+    retained captures;
+12. persistence-profile revision cannot rebuild a live streak from pre-stream
+    retained captures;
+13. relationship generation change starts a fresh stream;
+14. interpretation policy revision change starts/requires a fresh stream;
+15. persistence profile revision change starts/requires a fresh stream;
+16. first activation sample stays PRESERVE;
+17. second valid activation sample becomes SUPPORT/CONSTRAIN as domain policy
     specifies;
-15. direction reversal resets pending activation streak;
-16. release hysteresis matches accepted BridgePersistence behavior;
-17. duplicate/out-of-order rejection leaves persistence state unchanged;
-18. concurrent observations cannot double-count one capture;
-19. result preserves all upstream lineage identities;
-20. recommendation cannot be constructed by arbitrary caller;
-21. recommendation does not create RequestedTransitionDirection;
-22. all D7/D8A/D8B/D8C/D8D/C2 regression suites remain green.
+18. direction reversal resets pending activation streak;
+19. SUPPORT release uses value <= +releaseThreshold;
+20. CONSTRAIN release uses value >= -releaseThreshold;
+21. release hysteresis matches accepted BridgePersistence behavior;
+22. duplicate/out-of-order/pre-epoch rejection leaves persistence state unchanged;
+23. concurrent observations cannot double-count one capture;
+24. result preserves all upstream lineage identities;
+25. recommendation cannot be constructed by arbitrary caller;
+26. recommendation does not create RequestedTransitionDirection;
+27. all D7/D8A/D8B/D8C/D8D/C2 regression suites remain green.
 
 ---
 
@@ -652,8 +696,10 @@ Before implementation acceptance, tests should include at least:
 Without SourceCaptureId/stateVersion constraints, repeated evaluation of the same
 fact can manufacture persistence.
 
-Design response: de-duplicate by SourceCaptureId and require increasing
-stateVersion.
+Design response: de-duplicate by SourceCaptureId, require increasing
+stateVersion, and bind each live stream to a creation-time
+streamStartStateVersion epoch so older retained captures cannot seed a newly
+created live persistence stream.
 
 ### R2 — cross-relationship mixing
 
@@ -674,7 +720,18 @@ Persistent recommendation could be mistaken for permission.
 Design response: D9 stops at restricted-origin recommendation evidence and
 contains no authority types.
 
-### R5 — restart continuity claim
+### R5 — cross-policy historical backfill amplification
+
+A new stream created after an interpretation-policy or persistence-profile
+revision would otherwise begin with empty de-duplication/order state. Older
+retained captures could then be reinterpreted under the new policy and used to
+manufacture a fresh live persistence streak.
+
+Design response: every live stream has a trusted creation-time
+`streamStartStateVersion`; samples at or below that boundary are not counted.
+Historical/backfill processing is separate from live recommendation semantics.
+
+### R6 — restart continuity claim
 
 In-memory state cannot prove cross-restart persistence.
 
