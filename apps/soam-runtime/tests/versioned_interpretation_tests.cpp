@@ -186,7 +186,7 @@ int main() {
     require(success.admissibleProvenance().envelope().provenanceItemId()==
         admittedForward.envelope().provenanceItemId());
     requireBits(success.observation().compatibility(),
-        0x3fe745d1745d1746ULL); // d=1, orientation=1, capacity=1 -> 1/1.1
+        0x3fed1745d1745d17ULL); // d=1, orientation=1, capacity=1 -> 1/1.1
     requireBits(success.confidence().value(),
         0x3ff0000000000000ULL);
 
