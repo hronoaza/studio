@@ -12,7 +12,8 @@ option(SOAM_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 add_library(soam_runtime STATIC
     src/system_architecture.cpp
     src/production_transition_evaluator.cpp
-    src/source_capture_id.cpp)
+    src/source_capture_id.cpp
+    src/production_provenance_envelope.cpp)
 add_library(AdaptiveMesh::soam_runtime ALIAS soam_runtime)
 
 target_include_directories(soam_runtime PUBLIC
@@ -40,13 +41,16 @@ foreach(test_target
         topology_contract_tests
         live_evaluator_tests
         d7_provenance_gate_tests
-        source_snapshot_tests)
+        source_snapshot_tests
+        provenance_envelope_tests)
     add_executable(${test_target} tests/${test_target}.cpp)
     target_link_libraries(${test_target} PRIVATE soam_runtime)
     add_test(NAME run_${test_target} COMMAND ${test_target})
 endforeach()
 
 target_include_directories(source_snapshot_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(provenance_envelope_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_test(
@@ -95,3 +99,49 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
         "D8A SourceCaptureId mutation misuse")
+
+
+add_test(
+    NAME reject_d8b_default_construct_provenance_item_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8b_default_construct_provenance_item_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8B ProvenanceItemId default construction misuse")
+
+add_test(
+    NAME reject_d8b_construct_provenance_item_id_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8b_construct_provenance_item_id_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8B ProvenanceItemId arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8b_default_construct_provenance_envelope
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8b_default_construct_provenance_envelope.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8B provenance envelope default construction misuse")
+
+add_test(
+    NAME reject_d8b_construct_canonical_digest_from_bytes
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8b_construct_canonical_digest_from_bytes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8B CanonicalDigest arbitrary-byte construction misuse")
+
+add_test(
+    NAME reject_d8b_mutate_provenance_item_id
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/d8b_mutate_provenance_item_id.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../soam-domain/include
+        "D8B provenance item identity mutation misuse")
