@@ -8,6 +8,7 @@ namespace AdaptiveMesh {
 
 namespace detail {
 class ProductionTransitionConstructionAccess;
+class ProductionTransitionRequestDerivationAccess;
 class ProductionAuthorityDerivationAccess;
 }
 
@@ -57,6 +58,7 @@ private:
     std::uint64_t generation_;
 
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionTransitionRequestDerivationAccess;
 };
 
 class ProductionStateVersion final {
@@ -73,6 +75,7 @@ private:
     std::uint64_t opaqueVersion_;
 
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionTransitionRequestDerivationAccess;
     friend class detail::ProductionAuthorityDerivationAccess;
 };
 
@@ -90,6 +93,7 @@ private:
     std::uint64_t opaqueClassId_;
 
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionTransitionRequestDerivationAccess;
     friend class detail::ProductionAuthorityDerivationAccess;
 };
 
@@ -136,6 +140,7 @@ private:
     ProductionStateVersion stateVersion_;
 
     friend class detail::ProductionTransitionConstructionAccess;
+    friend class detail::ProductionTransitionRequestDerivationAccess;
 };
 
 class PermissionPrerequisiteEvidence final {
