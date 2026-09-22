@@ -51,3 +51,48 @@ target_include_directories(
 add_test(
     NAME run_permission_attestation_tests
     COMMAND permission_attestation_tests)
+
+
+add_test(
+    NAME reject_permission_direct_payload
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/direct_construct_payload.cpp
+        "permission payload direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+add_test(
+    NAME reject_permission_direct_public_key
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/direct_construct_public_key.cpp
+        "Ed25519 public key direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+add_test(
+    NAME reject_permission_direct_signature
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/direct_construct_signature.cpp
+        "Ed25519 signature direct construction"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+add_test(
+    NAME reject_permission_signing_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_signing_api.cpp
+        "production signing surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+add_test(
+    NAME reject_permission_dynamic_verify_surface
+    COMMAND bash
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/expect_compile_failure.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/no_dynamic_verify_api.cpp
+        "dynamic verifier surface"
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)
