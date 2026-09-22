@@ -1,6 +1,7 @@
 #include "production_permission_attestation.hpp"
 #include "permission_attestation_v1_vectors.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <span>
