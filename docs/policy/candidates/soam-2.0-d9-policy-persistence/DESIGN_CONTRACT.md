@@ -1177,16 +1177,28 @@ private:
 };
 ```
 
-The registry owns the concrete non-copyable stream. A handle owns only a shared
-binding state. Each `observe()` acquires a short-lived lease on the binding:
+The registry owns the concrete non-copyable stream. A handle owns a shared
+stream-binding state plus a shared reference to the mesh-owned registry/lifecycle
+state; it never owns the concrete stream or a raw mesh pointer.
+
+Each `observe()` first enters the registry lifecycle, acquires a short-lived
+stream lease, and obtains a coherent current relationship snapshot before the
+sample may reach the concrete stream:
 
 ```text
 handle
--> acquire binding lease
--> concrete live stream
--> observe
--> release lease
+-> registry lifecycle
+-> acquire stream binding lease
+-> coherent current relationship snapshot
+-> verify relationship exists + exact generation still matches stream key
+-> concrete live stream observe
+-> release leases
 ```
+
+If the relationship no longer exists or its generation no longer matches, the
+attempt emits the corresponding typed lifecycle rejection when a decision ID can
+be established, terminates that stream instance, drains its leases, and leaves
+the handle stale/fail-closed for subsequent calls.
 
 Closing/resetting an instance:
 
@@ -1204,6 +1216,12 @@ V1 requirements:
 
 - registry owns concrete stream lifetime;
 - handles are copyable observation façades, not stream owners;
+- handles retain shared registry/lifecycle state only to perform safe live
+  relationship revalidation and stream invalidation;
+- every observation revalidates relationship existence/generation against one
+  coherent current runtime snapshot before counting the sample;
+- relationship disappearance or generation mismatch terminates the old stream
+  instance;
 - concrete `ProductionBridgePersistenceStream` remains non-copyable and
   non-movable;
 - at most one live instance per exact semantic key;
@@ -1334,7 +1352,10 @@ The final API review resolves the previously open design gates:
 - observation identity: one restricted-origin
   `PersistenceObservationDecisionId` family for success/rejection attempts;
 - rejection flags/priority: deterministic bitset + section-18 validation order;
-- coherent creation snapshot: restricted runtime lease + mesh consistency lock.
+- coherent creation snapshot: restricted runtime lease + mesh consistency lock;
+- live observation lifecycle: relationship existence/generation is coherently
+  revalidated before counting every sample; stale incarnation terminates the
+  stream and subsequent handle use fails closed.
 
 No D9 design-level blocker remains before implementation.
 
