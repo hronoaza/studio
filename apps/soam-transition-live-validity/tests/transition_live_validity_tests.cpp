@@ -1,4 +1,5 @@
 #include "production_transition_live_validity.hpp"
+#include "detail/production_transition_live_validity_internal.hpp"
 #include "retained_source_evidence.hpp"
 #include "system_architecture.hpp"
 
