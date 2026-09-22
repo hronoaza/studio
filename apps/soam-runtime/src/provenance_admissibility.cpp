@@ -1,8 +1,8 @@
 #include "provenance_admissibility.hpp"
 #include "detail/provenance_admissibility_internal.hpp"
 #include "detail/provenance_envelope_internal.hpp"
+#include "d8b_implementation_revision.hpp"
 
-#include <algorithm>
 #include <array>
 #include <atomic>
 #include <bit>
@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -137,9 +138,81 @@ void resetD8COpaqueIdGeneratorForTesting() noexcept
     nextRecentId=0;
 }
 
+ProvenanceAdmissibilityPolicySnapshot
+ProvenanceAdmissibilityTestAccess::makePolicy(
+    PolicySnapshotId::Bytes snapshotId,
+    AdmissibilityPolicyDescriptor descriptor,
+    std::vector<ProducerPolicyEntry> producers,
+    std::vector<SchemaPolicyEntry> schemas,
+    std::vector<DependencyPolicyEntry> dependencies,
+    std::vector<std::uint8_t> requiredDependencyKinds)
+{
+    return ProvenanceAdmissibilityPolicySnapshot{
+        PolicySnapshotId{snapshotId},
+        descriptor,
+        std::move(producers),
+        std::move(schemas),
+        std::move(dependencies),
+        std::move(requiredDependencyKinds)
+    };
+}
+
 } // namespace detail
 
 namespace {
+
+constexpr ProvenanceMetadataView::Id128 kSchemaId{
+    0x3c,0xb7,0x9d,0x20,0xa6,0x2b,0x87,0x80,
+    0x96,0x0c,0x1a,0xeb,0x70,0xb4,0x2e,0xf4
+};
+constexpr ProvenanceMetadataView::Id128 kProducerId{
+    0x20,0x1a,0x17,0xbf,0x2d,0xc6,0x1a,0x8a,
+    0x72,0xaa,0x76,0x63,0x78,0x00,0xe5,0x35
+};
+constexpr ProvenanceMetadataView::Id128 kDepSourceCapture{
+    0xeb,0xe0,0x30,0x70,0x61,0x1d,0x3e,0x46,
+    0x0a,0x72,0xd1,0x12,0xb9,0xa1,0x81,0xad
+};
+constexpr ProvenanceMetadataView::Id128 kDepCanonicalEncoding{
+    0x11,0x6a,0xe0,0x37,0xcd,0x62,0x7d,0xff,
+    0x94,0x96,0xdd,0x58,0x12,0xac,0x71,0x24
+};
+constexpr ProvenanceMetadataView::Id128 kDepDigestProfile{
+    0xda,0x5d,0x36,0x58,0x65,0x07,0x6c,0xc4,
+    0x15,0xc1,0xac,0xd8,0x42,0xab,0xf0,0xd0
+};
+constexpr std::array<std::uint8_t,16> kPolicyId{
+    0x7d,0x38,0x6a,0xc2,0x15,0x4f,0x47,0x92,
+    0xa1,0xc8,0x30,0xd7,0x2e,0x65,0x89,0xb4
+};
+
+[[nodiscard]] constexpr std::uint8_t hexNibble(char value) {
+    if (value >= '0' && value <= '9') {
+        return static_cast<std::uint8_t>(value - '0');
+    }
+    if (value >= 'a' && value <= 'f') {
+        return static_cast<std::uint8_t>(value - 'a' + 10);
+    }
+    if (value >= 'A' && value <= 'F') {
+        return static_cast<std::uint8_t>(value - 'A' + 10);
+    }
+    return 0xffU;
+}
+
+[[nodiscard]] constexpr ProvenanceMetadataView::Digest256
+implementationRevisionDigest()
+{
+    constexpr const char* hex = SOAM_D8B_IMPLEMENTATION_REVISION_SHA;
+    ProvenanceMetadataView::Digest256 digest{};
+    for (std::size_t i=0; i<digest.size(); ++i) {
+        const auto high=hexNibble(hex[i*2U]);
+        const auto low=hexNibble(hex[i*2U+1U]);
+        digest[i]=static_cast<std::uint8_t>((high<<4U)|low);
+    }
+    return digest;
+}
+
+constexpr auto kImplementationRevision=implementationRevisionDigest();
 
 template <std::size_t N>
 [[nodiscard]] bool nonZero(const std::array<std::uint8_t,N>& value) noexcept {
@@ -158,39 +231,6 @@ template <std::size_t N>
     ProvenanceAdmissibilityReason reason) noexcept
 {
     return std::uint64_t{1} << static_cast<std::uint8_t>(reason);
-}
-
-[[nodiscard]] bool sameProducerKey(
-    const ProducerPolicyEntry& a,
-    const ProducerPolicyEntry& b) noexcept
-{
-    return a.producerId==b.producerId &&
-        a.producerMajor==b.producerMajor &&
-        a.producerMinor==b.producerMinor &&
-        a.implementationRevisionKind==b.implementationRevisionKind &&
-        a.implementationRevision==b.implementationRevision;
-}
-
-[[nodiscard]] bool sameSchemaKey(
-    const SchemaPolicyEntry& a,
-    const SchemaPolicyEntry& b) noexcept
-{
-    return a.schemaId==b.schemaId &&
-        a.schemaMajor==b.schemaMajor &&
-        a.schemaMinor==b.schemaMinor &&
-        a.canonicalEncodingVersion==b.canonicalEncodingVersion;
-}
-
-[[nodiscard]] bool sameDependencyKey(
-    const DependencyPolicyEntry& a,
-    const DependencyPolicyEntry& b) noexcept
-{
-    return a.dependencyKind==b.dependencyKind &&
-        a.dependencyId==b.dependencyId &&
-        a.versionMajor==b.versionMajor &&
-        a.versionMinor==b.versionMinor &&
-        a.revisionKind==b.revisionKind &&
-        a.revisionDigest==b.revisionDigest;
 }
 
 [[nodiscard]] bool sourceMatches(
@@ -213,45 +253,109 @@ template <std::size_t N>
         sameBits(record.targetHealth(),envelope.targetHealth());
 }
 
+[[nodiscard]] const ProducerPolicyEntry* findProducer(
+    const ProvenanceMetadataView& metadata,
+    const ProvenanceAdmissibilityPolicySnapshot& policy,
+    bool& familyKnown) noexcept
+{
+    familyKnown=false;
+    for (const auto& entry:policy.producers()) {
+        if (entry.producerId==metadata.producerId() &&
+            entry.producerMajor==metadata.producerMajor() &&
+            entry.producerMinor==metadata.producerMinor()) {
+            familyKnown=true;
+            if (entry.implementationRevisionKind==
+                    metadata.implementationRevisionKind() &&
+                entry.implementationRevision==
+                    metadata.implementationRevision()) {
+                return &entry;
+            }
+        }
+    }
+    return nullptr;
+}
+
+[[nodiscard]] const SchemaPolicyEntry* findSchema(
+    const ProvenanceMetadataView& metadata,
+    const ProvenanceAdmissibilityPolicySnapshot& policy,
+    bool& schemaIdKnown,
+    bool& schemaVersionKnown) noexcept
+{
+    schemaIdKnown=false;
+    schemaVersionKnown=false;
+    for (const auto& entry:policy.schemas()) {
+        if (entry.schemaId==metadata.schemaId()) {
+            schemaIdKnown=true;
+            if (entry.schemaMajor==metadata.schemaMajor() &&
+                entry.schemaMinor==metadata.schemaMinor()) {
+                schemaVersionKnown=true;
+                if (entry.canonicalEncodingVersion==
+                    metadata.canonicalEncodingVersion()) {
+                    return &entry;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+[[nodiscard]] const DependencyPolicyEntry* findDependency(
+    const ProvenanceDependencyDescriptor& dependency,
+    const ProvenanceAdmissibilityPolicySnapshot& policy,
+    bool& familyKnown) noexcept
+{
+    familyKnown=false;
+    for (const auto& entry:policy.dependencies()) {
+        if (entry.dependencyKind==dependency.kind &&
+            entry.dependencyId==dependency.dependencyId) {
+            familyKnown=true;
+            if (entry.versionMajor==dependency.versionMajor &&
+                entry.versionMinor==dependency.versionMinor &&
+                entry.revisionKind==dependency.revisionKind &&
+                entry.revisionDigest==dependency.revisionDigest) {
+                return &entry;
+            }
+        }
+    }
+    return nullptr;
+}
+
 } // namespace
 
 std::optional<ProvenanceAdmissibilityPolicySnapshot>
-ProvenanceAdmissibilityPolicyPublisher::publish(
-    AdmissibilityPolicyDescriptor descriptor,
-    std::vector<ProducerPolicyEntry> producers,
-    std::vector<SchemaPolicyEntry> schemas,
-    std::vector<DependencyPolicyEntry> dependencies) const
+ProductionProvenanceAdmissibilityPolicyProvider::createCurrent()
 {
-    if (!nonZero(descriptor.policyId)) return std::nullopt;
-
-    for (std::size_t i=0;i<producers.size();++i) {
-        if (!nonZero(producers[i].producerId)) return std::nullopt;
-        for (std::size_t j=i+1;j<producers.size();++j) {
-            if (sameProducerKey(producers[i],producers[j])) return std::nullopt;
-        }
-    }
-    for (std::size_t i=0;i<schemas.size();++i) {
-        if (!nonZero(schemas[i].schemaId)) return std::nullopt;
-        for (std::size_t j=i+1;j<schemas.size();++j) {
-            if (sameSchemaKey(schemas[i],schemas[j])) return std::nullopt;
-        }
-    }
-    for (std::size_t i=0;i<dependencies.size();++i) {
-        if (!nonZero(dependencies[i].dependencyId)) return std::nullopt;
-        for (std::size_t j=i+1;j<dependencies.size();++j) {
-            if (sameDependencyKey(dependencies[i],dependencies[j])) return std::nullopt;
-        }
-    }
-
     const auto id=detail::tryGenerateD8COpaqueIdBytes();
     if (!id.has_value()) return std::nullopt;
 
+    const ProvenanceMetadataView::Digest256 zero{};
+
+    std::vector<ProducerPolicyEntry> producers{
+        {kProducerId,1,0,1,kImplementationRevision,
+         ProducerLifecycleStatus::Recognized}
+    };
+    std::vector<SchemaPolicyEntry> schemas{
+        {kSchemaId,1,0,1,SchemaLifecycleStatus::Compatible}
+    };
+    std::vector<DependencyPolicyEntry> dependencies{
+        {1,kDepSourceCapture,1,0,0,zero,
+         DependencySemanticCategory::SourceCaptureContract,
+         DependencyLifecycleStatus::Active},
+        {2,kDepCanonicalEncoding,1,0,0,zero,
+         DependencySemanticCategory::CanonicalEncoding,
+         DependencyLifecycleStatus::Active},
+        {3,kDepDigestProfile,1,0,0,zero,
+         DependencySemanticCategory::DigestProfile,
+         DependencyLifecycleStatus::Active}
+    };
+
     return ProvenanceAdmissibilityPolicySnapshot{
         PolicySnapshotId{*id},
-        descriptor,
+        AdmissibilityPolicyDescriptor{kPolicyId,1,0},
         std::move(producers),
         std::move(schemas),
-        std::move(dependencies)
+        std::move(dependencies),
+        {1U,2U,3U}
     };
 }
 
@@ -283,148 +387,109 @@ ProvenanceAdmissibilityEvaluator::evaluate(
     const auto recomputed=detail::sha256D8BDomainSeparated(
         envelope.canonicalBytes());
     if (recomputed != envelope.canonicalDigest().bytes()) {
-        return reject(ProvenanceAdmissibilityReason::CANONICAL_DIGEST_MISMATCH);
+        return reject(ProvenanceAdmissibilityReason::CanonicalDigestMismatch);
     }
 
     const auto& metadata=envelope.metadata();
     if (!nonZero(metadata.schemaId()) ||
         !nonZero(metadata.producerId()) ||
-        metadata.implementationRevisionKind()>1U) {
-        return reject(ProvenanceAdmissibilityReason::METADATA_INCONSISTENT);
+        metadata.implementationRevisionKind()!=1U ||
+        !nonZero(metadata.implementationRevision())) {
+        return reject(ProvenanceAdmissibilityReason::MetadataInconsistent);
     }
 
-    const ProducerPolicyEntry* producerExact=nullptr;
     bool producerFamily=false;
-    for (const auto& entry:policy.producers()) {
-        if (entry.producerId==metadata.producerId() &&
-            entry.producerMajor==metadata.producerMajor() &&
-            entry.producerMinor==metadata.producerMinor()) {
-            producerFamily=true;
-            if (entry.implementationRevisionKind==
-                    metadata.implementationRevisionKind() &&
-                entry.implementationRevision==
-                    metadata.implementationRevision()) {
-                producerExact=&entry;
+    const auto* producer=findProducer(metadata,policy,producerFamily);
+    if (producer==nullptr) {
+        return reject(producerFamily
+            ? ProvenanceAdmissibilityReason::ImplementationRevisionUnrecognized
+            : ProvenanceAdmissibilityReason::ProducerUnknown);
+    }
+    if (producer->status==ProducerLifecycleStatus::Retired) {
+        return reject(ProvenanceAdmissibilityReason::ProducerRetired);
+    }
+    if (producer->status==ProducerLifecycleStatus::Prohibited) {
+        return reject(ProvenanceAdmissibilityReason::ProducerProhibited);
+    }
+
+    bool schemaIdKnown=false;
+    bool schemaVersionKnown=false;
+    const auto* schema=findSchema(
+        metadata,policy,schemaIdKnown,schemaVersionKnown);
+    if (schema==nullptr) {
+        if (!schemaIdKnown) {
+            return reject(ProvenanceAdmissibilityReason::SchemaUnknown);
+        }
+        if (schemaVersionKnown) {
+            return reject(
+                ProvenanceAdmissibilityReason::CanonicalEncodingUnsupported);
+        }
+        return reject(ProvenanceAdmissibilityReason::SchemaIncompatible);
+    }
+    if (schema->status==SchemaLifecycleStatus::Retired) {
+        return reject(ProvenanceAdmissibilityReason::SchemaRetired);
+    }
+    if (schema->status!=SchemaLifecycleStatus::Compatible) {
+        return reject(ProvenanceAdmissibilityReason::SchemaIncompatible);
+    }
+
+    for (const auto requiredKind:policy.requiredDependencyKinds()) {
+        bool present=false;
+        for (const auto& dependency:metadata.dependencies()) {
+            if (dependency.kind==requiredKind) {
+                present=true;
                 break;
             }
         }
-    }
-    if (producerExact==nullptr) {
-        return reject(producerFamily
-            ? ProvenanceAdmissibilityReason::IMPLEMENTATION_REVISION_UNRECOGNIZED
-            : ProvenanceAdmissibilityReason::PRODUCER_UNKNOWN);
-    }
-    if (producerExact->lifecycleStatus==ProducerLifecycleStatus::RETIRED) {
-        return reject(ProvenanceAdmissibilityReason::PRODUCER_RETIRED);
-    }
-    if (producerExact->lifecycleStatus==ProducerLifecycleStatus::PROHIBITED) {
-        return reject(ProvenanceAdmissibilityReason::PRODUCER_PROHIBITED);
+        if (!present) {
+            return reject(
+                ProvenanceAdmissibilityReason::RequiredDependencyMissing);
+        }
     }
 
-    const SchemaPolicyEntry* schemaExact=nullptr;
-    bool schemaIdKnown=false;
-    bool schemaVersionKnown=false;
-    for (const auto& entry:policy.schemas()) {
-        if (entry.schemaId==metadata.schemaId()) {
-            schemaIdKnown=true;
-            if (entry.schemaMajor==metadata.schemaMajor() &&
-                entry.schemaMinor==metadata.schemaMinor()) {
-                schemaVersionKnown=true;
-                if (entry.canonicalEncodingVersion==
-                    metadata.canonicalEncodingVersion()) {
-                    schemaExact=&entry;
-                    break;
-                }
-            }
-        }
-    }
-    if (schemaExact==nullptr) {
-        if (!schemaIdKnown) {
-            return reject(ProvenanceAdmissibilityReason::SCHEMA_UNKNOWN);
-        }
-        if (schemaVersionKnown) {
-            return reject(ProvenanceAdmissibilityReason::CANONICAL_ENCODING_UNSUPPORTED);
-        }
-        return reject(ProvenanceAdmissibilityReason::SCHEMA_INCOMPATIBLE);
-    }
-    if (schemaExact->lifecycleStatus==SchemaLifecycleStatus::RETIRED) {
-        return reject(ProvenanceAdmissibilityReason::SCHEMA_RETIRED);
-    }
-    if (schemaExact->lifecycleStatus!=SchemaLifecycleStatus::COMPATIBLE) {
-        return reject(ProvenanceAdmissibilityReason::SCHEMA_INCOMPATIBLE);
-    }
-
-    bool required1=false,required2=false,required3=false;
     for (const auto& dependency:metadata.dependencies()) {
-        if (dependency.kind==1U) required1=true;
-        if (dependency.kind==2U) required2=true;
-        if (dependency.kind==3U) required3=true;
-
-        const DependencyPolicyEntry* exact=nullptr;
         bool familyKnown=false;
-        for (const auto& entry:policy.dependencies()) {
-            if (entry.dependencyKind==dependency.kind &&
-                entry.dependencyId==dependency.dependencyId) {
-                familyKnown=true;
-                if (entry.versionMajor==dependency.versionMajor &&
-                    entry.versionMinor==dependency.versionMinor &&
-                    entry.revisionKind==dependency.revisionKind &&
-                    entry.revisionDigest==dependency.revisionDigest) {
-                    exact=&entry;
-                    break;
-                }
-            }
-        }
+        const auto* exact=findDependency(dependency,policy,familyKnown);
         if (exact==nullptr) {
             return reject(familyKnown
-                ? ProvenanceAdmissibilityReason::DEPENDENCY_INCOMPATIBLE
-                : ProvenanceAdmissibilityReason::DEPENDENCY_UNKNOWN);
+                ? ProvenanceAdmissibilityReason::DependencyIncompatible
+                : ProvenanceAdmissibilityReason::DependencyUnknown);
         }
-        if (exact->semanticCategory==
-            DependencySemanticCategory::INTERPRETATION_POLICY) {
+        if (exact->category==DependencySemanticCategory::InterpretationPolicy) {
             return reject(
-                ProvenanceAdmissibilityReason::LEGACY_INTERPRETATION_DEPENDENCY);
+                ProvenanceAdmissibilityReason::LegacyInterpretationDependency);
         }
-        switch (exact->lifecycleStatus) {
-        case DependencyLifecycleStatus::ACTIVE:
+        switch (exact->status) {
+        case DependencyLifecycleStatus::Active:
             break;
-        case DependencyLifecycleStatus::RETIRED:
-            return reject(ProvenanceAdmissibilityReason::DEPENDENCY_RETIRED);
-        case DependencyLifecycleStatus::PROHIBITED:
-            return reject(ProvenanceAdmissibilityReason::DEPENDENCY_PROHIBITED);
-        case DependencyLifecycleStatus::INCOMPATIBLE:
-            return reject(ProvenanceAdmissibilityReason::DEPENDENCY_INCOMPATIBLE);
+        case DependencyLifecycleStatus::Retired:
+            return reject(ProvenanceAdmissibilityReason::DependencyRetired);
+        case DependencyLifecycleStatus::Prohibited:
+            return reject(ProvenanceAdmissibilityReason::DependencyProhibited);
+        case DependencyLifecycleStatus::Incompatible:
+            return reject(ProvenanceAdmissibilityReason::DependencyIncompatible);
         }
-    }
-
-    if (!required1 || !required2 || !required3) {
-        return reject(ProvenanceAdmissibilityReason::REQUIRED_DEPENDENCY_MISSING);
     }
 
     const auto resolution=resolver.resolve(envelope.sourceCaptureId());
     switch (resolution.status) {
     case SourceResolutionStatus::FOUND:
         if (!resolution.record.has_value()) {
-            return reject(ProvenanceAdmissibilityReason::SOURCE_RESOLVER_FAILURE);
+            return reject(ProvenanceAdmissibilityReason::SourceResolverFailure);
         }
         break;
     case SourceResolutionStatus::NOT_FOUND:
-        return reject(ProvenanceAdmissibilityReason::SOURCE_RECORD_UNAVAILABLE);
+        return reject(ProvenanceAdmissibilityReason::SourceRecordUnavailable);
     case SourceResolutionStatus::RESOLVER_FAILURE:
-        return reject(ProvenanceAdmissibilityReason::SOURCE_RESOLVER_FAILURE);
+        return reject(ProvenanceAdmissibilityReason::SourceResolverFailure);
     case SourceResolutionStatus::INTEGRITY_CONFLICT:
         return reject(
-            ProvenanceAdmissibilityReason::SOURCE_EVIDENCE_INTEGRITY_CONFLICT);
+            ProvenanceAdmissibilityReason::SourceEvidenceIntegrityConflict);
     }
 
     if (!sourceMatches(*resolution.record,envelope)) {
-        return reject(ProvenanceAdmissibilityReason::SOURCE_RECORD_MISMATCH);
+        return reject(ProvenanceAdmissibilityReason::SourceRecordMismatch);
     }
-
-    SourceVerificationSummary verification{
-        envelope.sourceCaptureId(),
-        true
-    };
 
     return ProvenanceAdmissibilityResult{
         AdmissibleProductionProvenance{
@@ -432,7 +497,7 @@ ProvenanceAdmissibilityEvaluator::evaluate(
             policy.policySnapshotId(),
             policy.descriptor(),
             envelope,
-            std::move(verification)
+            SourceVerificationSummary{envelope.sourceCaptureId(),true}
         }
     };
 }
