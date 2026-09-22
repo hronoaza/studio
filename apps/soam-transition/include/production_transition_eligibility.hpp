@@ -10,6 +10,7 @@ namespace detail {
 class ProductionTransitionConstructionAccess;
 class ProductionTransitionRequestDerivationAccess;
 class ProductionLiveValidityC1ConversionAccess;
+class ProductionTransitionInvariantPolicyAccess;
 class ProductionAuthorityDerivationAccess;
 }
 
@@ -95,6 +96,7 @@ private:
 
     friend class detail::ProductionTransitionConstructionAccess;
     friend class detail::ProductionTransitionRequestDerivationAccess;
+    friend class detail::ProductionTransitionInvariantPolicyAccess;
     friend class detail::ProductionAuthorityDerivationAccess;
 };
 
