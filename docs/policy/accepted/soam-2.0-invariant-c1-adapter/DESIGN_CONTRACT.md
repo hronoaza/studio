@@ -3,13 +3,13 @@
 ## 0. Status
 
 - Layer: B1.2 — accepted B1 Invariant Evidence -> accepted C1 Invariant prerequisite input
-- Document class: design-contract candidate
+- Document class: concrete design contract
 - Scope: `ProductionInvariantPrerequisiteRecord` -> `InvariantPrerequisiteEvidence`
 - Upstream source: B1 invariant prerequisite record
 - Downstream contract: C1 `InvariantPrerequisiteEvidence`
-- Acceptance status: design-review pending
+- Acceptance status: accepted
 - Authority effect: none
-- Module placement: `apps/soam-transition-invariant-c1/`; target `soam_transition_invariant_c1` (provisional; subject to ratification)
+- Module placement: `apps/soam-transition-invariant-c1/`; target `soam_transition_invariant_c1`
 - Origin baseline: main @ `192708ee9dbffe2e52f543c2f906bada215cc18c`
 
 ## 1. Boundary
