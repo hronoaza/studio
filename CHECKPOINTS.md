@@ -220,7 +220,8 @@ A checkpoint that cannot practically be restored should not be treated as a stro
 **checkpoint_id:** HRZ-CP-20260923-001  
 **predecessor:** none — first concrete checkpoint record in this ledger
 
-**timestamp_utc:** 2026-09-23T11:37:23Z — GitHub PR #35 created_at
+**timestamp_utc:** 2026-09-23T11:37:23Z — GitHub PR #35 created_at  
+**timestamp_source:** PR `created_at` from GitHub metadata, chosen for external immutability and verifiability rather than a local commit timestamp
 
 **repository:** hronoaza/studio  
 **branch:** main
@@ -232,7 +233,8 @@ A checkpoint that cannot practically be restored should not be treated as a stro
 
 **checkpoint_status:** candidate  
 **provenance_status:** documented  
-**verification_status:** passed-with-limitations
+**verification_status:** passed-with-limitations  
+**verification_limitations:** branch protection is not yet enabled; `protection_boundary_commit` and `first_protected_commit` are not yet established
 
 **sensitivity:** ordinary
 
@@ -273,6 +275,10 @@ Once protection is enabled, main history cannot be rewritten through force-push,
 
 **first_protected_commit:** pending — phase 2 will identify the completing checkpoint PR as the first protected change; the exact merge SHA will remain canonical in the GitHub merge record rather than being self-embedded.
 
+**completion:** pending — after branch protection is enabled, a phase 2 checkpoint PR will complete this record by replacing `protection_boundary_commit` with the exact phase 1 merge SHA and replacing the phase-1 `first_protected_commit` placeholder with an explicit pointer to the phase 2 GitHub merge record.
+
 **implementation_note:** with administrator enforcement enabled, the operator cannot force-push to main, cannot bypass the protected merge path as administrator, and cannot amend protected main history. Corrections must proceed through a new PR.
+
+**single_operator_policy_rationale:** `required approving reviews = 0` together with administrator enforcement is intentional for the current single-operator repository. Requiring one approval while enforcing the rule on administrators would make the merge path non-functional because self-approval does not satisfy an independent-review requirement; allowing administrator bypass would weaken the boundary. The chosen configuration preserves a real PR-only boundary without inventing a reviewer who does not exist.
 
 **provenance_note:** the signature-verification state of the phase 1 merge commit will be observed after merge and recorded as evidence in phase 2. No pre-merge claim is made that the future merge commit is already verified.
