@@ -215,70 +215,66 @@ A checkpoint that cannot practically be restored should not be treated as a stro
 
 ## Recorded checkpoints
 
-### HRZ-CP-20260923-001
+### HRZ-CP-20260923-001 (completed)
 
 **checkpoint_id:** HRZ-CP-20260923-001  
-**predecessor:** none — first concrete checkpoint record in this ledger
+**predecessor:** none — first concrete checkpoint record in this ledger  
+**phase:** 2 of 2 — completion
 
-**timestamp_utc:** 2026-09-23T11:37:23Z — GitHub PR #35 created_at  
-**timestamp_source:** PR `created_at` from GitHub metadata, chosen for external immutability and verifiability rather than a local commit timestamp
+**timestamp_utc:** 2026-09-23T12:56:24Z — GitHub PR #36 created_at  
+**timestamp_source:** GitHub phase 2 PR `created_at`, chosen for external immutability and verifiability rather than a local commit timestamp
 
 **repository:** hronoaza/studio  
 **branch:** main
 
-**recorded_on_main_sha:** a8b11dd4f1547de79ce25870cac792a757aa27d5  
-**recorded_on_tree_sha:** 09aa3e9f63eb3003ab0e74734e3d5d99872dc8ef
+**recorded_on_main_sha:** 53610c65caaf8579db376771e9bcc0014a97f3f5 — phase 1 merge commit; protection boundary  
+**recorded_on_tree_sha:** fef8354933ed802639debdfad17bd1e61259b522
 
 **creating_operator:** Mykola Bezruchko <hronoaza00@gmail.com>
 
-**checkpoint_status:** candidate  
+**checkpoint_status:** verified  
 **provenance_status:** documented  
-**verification_status:** passed-with-limitations  
-**verification_limitations:** branch protection is not yet enabled; `protection_boundary_commit` and `first_protected_commit` are not yet established
+**verification_status:** passed
 
 **sensitivity:** ordinary
 
-**restrictions:** documentation-only checkpoint record; no runtime / source / build / test changes
+**restrictions:** documentation-only; no runtime / source / build / test changes
 
-**unresolved_issues:**
-- protection_boundary_commit not yet established;
-- first_protected_commit not yet established;
-- branch protection is not yet enabled.
+**unresolved_issues:** none for this checkpoint record
 
-**recovery_suitability:**
-- source rollback: suitable for repository-content comparison/rollback if otherwise authorized;
-- development rollback: suitable as a source-state reference;
-- release rollback: not established;
-- deployment rollback: not applicable;
-- configuration rollback: not sufficient for GitHub branch-protection state;
-- forensic comparison: suitable.
+**recovery_suitability:** not applicable — governance-state checkpoint; no runtime state to recover to
 
 ---
 
-**baseline_reference_commit:** a8b11dd4f1547de79ce25870cac792a757aa27d5  
-Last commit before this governance workstream began.
+**baseline_reference_commit:** a8b11dd4f1547de79ce25870cac792a757aa27d5 — last commit before this governance workstream began
 
-**pending_governance_action:** enable branch protection on main with:
+**protection_boundary_commit:** 53610c65caaf8579db376771e9bcc0014a97f3f5 — last commit in main recorded under unprotected branch state
 
-- require pull request before merge: true;
-- required approving reviews: 0;
-- enforce administrators: true;
-- allow force pushes: false;
-- allow deletions: false;
-- required status checks: none initially.
+**protection_enabled_at_utc:** 2026-09-23T12:51:43.130Z  
+**protection_timestamp_source:** GitHub repository ruleset metadata, ruleset id 23879954
 
-**governance_semantics:** protection will apply prospectively, not retroactively.
+**enforcement_mechanism:** repository ruleset, not classic branch protection. The classic branch-protection API surface may report its classic-rule state separately; enforcement for this checkpoint is established by repository ruleset 23879954.
 
-Once protection is enabled, main history cannot be rewritten through force-push, administrator bypass is disabled for the protected path, and any repository-content correction to main requires a new commit through a new pull request. This is intentional enforcement, not a side effect.
+- ruleset id: 23879954
+- name: main
+- enforcement: active
+- target: default branch (main)
+- bypass list: empty
+- current_user_can_bypass: never
+- deletion blocked: yes
+- force-push blocked: yes — non-fast-forward updates rejected
+- pull request required: yes
+- required approvals: 0
+- allowed merge methods: merge only
+- required status checks: none initially
+- review-thread resolution enforced: no
 
-**protection_boundary_commit:** pending — will be the merge SHA of this PR and the last commit recorded under unprotected main.
+**observed_policy:** require PR before merge; no approvals; no bypass; no force-push; no deletion; merge-only; no required checks initially. Merge-only is intentional to preserve first-parent governance ordering. Review-thread resolution is not enforced by the current protection policy.
 
-**first_protected_commit:** pending — phase 2 will identify the completing checkpoint PR as the first protected change; the exact merge SHA will remain canonical in the GitHub merge record rather than being self-embedded.
+**operational_consequence:** with an empty bypass list and `current_user_can_bypass=never`, the operator cannot bypass the protected path, cannot force-push to main, cannot amend protected main history, and cannot merge to main without a pull request. Any correction requires a new commit through a new pull request.
 
-**completion:** pending — after branch protection is enabled, a phase 2 checkpoint PR will complete this record by replacing `protection_boundary_commit` with the exact phase 1 merge SHA and replacing the phase-1 `first_protected_commit` placeholder with an explicit pointer to the phase 2 GitHub merge record.
+**provenance_note:** phase 1 merge commit 53610c65caaf8579db376771e9bcc0014a97f3f5 is GitHub-signature-verified (`verified=true`, `reason=valid`). This confirms creation through GitHub merge infrastructure; it does not extend trust to the repository state as a whole.
 
-**implementation_note:** with administrator enforcement enabled, the operator cannot force-push to main, cannot bypass the protected merge path as administrator, and cannot amend protected main history. Corrections must proceed through a new PR.
+**first_protected_change:** this phase 2 PR
 
-**single_operator_policy_rationale:** `required approving reviews = 0` together with administrator enforcement is intentional for the current single-operator repository. Requiring one approval while enforcing the rule on administrators would make the merge path non-functional because self-approval does not satisfy an independent-review requirement; allowing administrator bypass would weaken the boundary. The chosen configuration preserves a real PR-only boundary without inventing a reviewer who does not exist.
-
-**provenance_note:** the signature-verification state of the phase 1 merge commit will be observed after merge and recorded as evidence in phase 2. No pre-merge claim is made that the future merge commit is already verified.
+**first_protected_commit:** see the GitHub merge record for this PR; canonical repository metadata; intentionally not self-embedded.
