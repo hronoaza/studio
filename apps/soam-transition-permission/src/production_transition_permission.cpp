@@ -312,7 +312,8 @@ ProductionPermissionPolicyProvider::createCurrent()
     if (!publicKey.has_value()) return std::nullopt;
 
     std::vector<TrustedPermissionIssuer> trustedIssuers;
-    trustedIssuers.emplace_back(PermissionIssuerId{kTestIssuerId},*publicKey);
+    trustedIssuers.push_back(
+        TrustedPermissionIssuer{PermissionIssuerId{kTestIssuerId},*publicKey});
 
     return PermissionVerificationPolicySnapshot{
         PermissionPolicySnapshotId{*snapshotBytes},
