@@ -3,7 +3,8 @@
 **Document version:** Evidence Inventory v1  
 **Status:** draft consolidated baseline / internally consistency-reviewed  
 **Ratification:** not performed  
-**Repository mutation:** documentation-only candidate on review branch  
+**Change class:** documentation-only  
+**Repository impact:** no runtime / source / build / test changes  
 **Scope:** through C1 eligibility  
 **Terminal state:** eligible_for_authority_consideration  
 **Outside v1:** Authority, capability issuance, execution, commit-time mutation
@@ -256,20 +257,21 @@ Cross-domain tooling must not assume a single repository-wide endianness. Frozen
                   v
             prerequisite fan-out
 
-              A1                 B1                 C                  D
-               |                  |                  |                  |
-               v                  v                  v                  v
-          A1 evidence         B1 record          C record        crypto slice only
-               |                  |                  |                  |
-               A2               [gap]              [gap]          [channel gap]
-               |                                                       |
-               |                                                  [adapter gap]
-               +------------------+------------------+
-                                  |
-                           [assembler gap]
-                                  |
-                                  v
-                   ProductionTransitionPrerequisiteSet
+                A1             B1             C               D
+                 │              │              │               │
+                 ↓              ↓              ↓               ↓
+            A1 evidence    B1 record      C record       crypto slice only
+                 │              │              │               │
+                 A2           [gap]          [gap]          [channel gap]
+                 │              │              │               │
+                 │              │              │          [adapter gap]
+                 │              │              │               │
+                 └──────────────┴──────────────┴───────────────┘
+                                      │
+                              [assembler gap]
+                                      │
+                                      ↓
+                       ProductionTransitionPrerequisiteSet
                                   |
                                   v
                                   C1
@@ -1287,6 +1289,21 @@ These are known boundaries, not automatically architectural debt.
 8. L2 cross-channel atomic snapshot: absent in current design/implementation; not delegated, simply not introduced
 9. L3 commit-time current-state validation: explicitly delegated to Authority/Execution; must be atomic with mutation
 
+10. Governance precondition: main branch protection.
+
+    D design baseline v0 presupposes protected main history with
+    first-parent ordering and no-force-push discipline.
+
+    Current state: main branch protection not enabled.
+
+    Consequence:
+      - PR #34 (docs-only) is not blocked by this.
+      - Any future step that relies on accepted-main-history ordering
+        (D2 ceremony, D ratification, governance-sequence indexing)
+        requires enabling branch protection first.
+
+    This is a governance precondition, not a design defect.
+
 Absence of L2 != delegation.  
 L3 is a delegation.  
 Do not collapse L2 and L3 under one "delegated" label.
@@ -1295,30 +1312,32 @@ Do not collapse L2 and L3 under one "delegated" label.
 
 ## §20. Evidence provenance appendix
 
-Canonical CI evidence is bound to exact validated implementation heads, not PR branch names, final PR heads, or merge commits.
+### Selected exact provenance anchors — not exhaustive
 
-Selected accepted provenance anchors:
+Table scope: selected exact provenance anchors for layers
+whose CI evidence was independently re-verified during audit.
+Not exhaustive for all 15 rows.
 
-| Layer | PR | Validated head | Merge | Workflow / run |
-|---|---:|---|---|---|
-| Domain | #3 | 3e4825eeb7560b8fff49f1853b571f1fee081fbd | fde04915... | Domain Core Validation / 35642257137 |
-| D8B | #14 | 4b3db739b6e5315953f7c07ab901ddaf0c8efd13 | 09b531... | dedicated run 35706825930 |
-| D8C | #16 | 70e5dd... | 391536... | Provenance Admissibility / 35710293291 |
-| D8D | #18 | f128203... | 0f8a714... | Versioned Interpretation / 35713247312 |
-| D9B | #20 | b8a164a7fba2fa702630326633d00312cbc32ccc | fa83f337... | D9 Policy Persistence / 35719911573 |
-| Request | #22 | 060509f24eedb0748f9fcd9f06288d3fc3056261 | 45b07590... | Transition Request / 35723993331 |
-| A1 | #24 | bf7361df2d7ffdb837479df9ed397e8387010109 | eceed69eeea508e3388ecc79aaf2daf2aeda8189 | Transition Live Validity / 35727059119 |
-| A2 | #26 | 154f030ab59be4c9017ecc3f611d2af23bd7a311 | 28f2370f3b8f2c2474bfbbdfc67474ceafc87db8 | Live Validity C1 Adapter / 35732028710 |
-| B1 | #29 | 990e69176c015d3273147133d0dbdaca49249db9 | b18efd22992af82654217cd38015b691275336a7 | Transition Invariant / 35735966849 |
-| C | #31 | 14faf28b99cf274cfd9412228533bc57996c95eb | aa9b5bf77bf060066c0f0dd5051a1cbfcf47f347 | Transition Resilience / 35738087378 |
-| D crypto slice | #33 | 621f29eaa85254bad3ca8bcfb800b3914d807d82 | 41627df13777aefd625e85003ca45ff6f2cc50e9 | Permission Verifier / 35745558003 |
-| C1 | #5 | dc2930b4a6bdc68d8d564122b6c8f4905ae3fe2c | 400ccfa75f128644b648f36e179208923bad6eb5 | Transition Eligibility / 35644105465 |
+| Layer | Validated implementation head | Merge commit | CI workflow / run |
+|---|---|---|---|
+| Domain | 3e4825eeb7560b8fff49f1853b571f1fee081fbd | fde04915eb80796a2672f4d7c57f9d45c3b8cb19 | SOAM 2.0 Domain Core Validation / 35642257137 |
+| D8B | 4b3db739b6e5315953f7c07ab901ddaf0c8efd13 | 09b531bc2950a1e219872b7f6291212bdb3b80f3 | SOAM 2.0 D8B Provenance Envelope Validation / 35706825930 |
+| D8C | 70e5dd371347a3218dba4298c9072a9c452fb0c9 | 391536d444eeac8f7284f30f4e6241b1d944560c | SOAM 2.0 D8C Provenance Admissibility Validation / 35710293291 |
+| D8D | f128203036c9bb6031ea753c821bdcba233d9d73 | 0f8a71444e17c0f17ae66ee3aed01f0a8395166e | SOAM 2.0 D8D Versioned Interpretation Validation / 35713247312 |
+| D9B | b8a164a7fba2fa702630326633d00312cbc32ccc | fa83f337ccabf8c0197eb4fcb3e1ddec26f61ec7 | SOAM 2.0 D9 Policy Persistence Validation / 35719911573 |
+| Request | 060509f24eedb0748f9fcd9f06288d3fc3056261 | 45b07590f78e9048a7a203c345f84fdd1456c68b | SOAM 2.0 Transition Request Validation / 35723993331 |
+| A1 | bf7361df2d7ffdb837479df9ed397e8387010109 | eceed69eeea508e3388ecc79aaf2daf2aeda8189 | SOAM 2.0 Transition Live Validity Validation / 35727059119 |
+| A2 | 154f030ab59be4c9017ecc3f611d2af23bd7a311 | 28f2370f3b8f2c2474bfbbdfc67474ceafc87db8 | SOAM 2.0 Live Validity C1 Adapter Validation / 35732028710 |
+| B1 | 990e69176c015d3273147133d0dbdaca49249db9 | b18efd22992af82654217cd38015b691275336a7 | SOAM 2.0 Transition Invariant Validation / 35735966849 |
+| C | 14faf28b99cf274cfd9412228533bc57996c95eb | aa9b5bf77bf060066c0f0dd5051a1cbfcf47f347 | SOAM 2.0 Transition Resilience Validation / 35738087378 |
+| D (crypto) | 621f29eaa85254bad3ca8bcfb800b3914d807d82 | 41627df13777aefd625e85003ca45ff6f2cc50e9 | SOAM 2.0 Permission Verifier Validation / 35745558003 |
+| C1 | dc2930b4a6bdc68d8d564122b6c8f4905ae3fe2c | 400ccfa75f128644b648f36e179208923bad6eb5 | SOAM 2.0 Transition Eligibility Validation / 35644105465 |
 
-For C1, executable implementation was validated at dc2930b4a6bdc68d8d564122b6c8f4905ae3fe2c. The final PR head cce56b649146c79a7c60c457094c230a09a478fb added only provenance/audit documentation before merge.
+Canonical CI evidence binds to the validated implementation head,
+not to the PR branch name, final PR head, or merge commit.
 
-CI count != coverage.
-
-Per-layer guarantees must come from the exercised contract and source evidence, not from the number of successful jobs.
+CI count != coverage. Per-layer guaranteed properties are stated in
+each dossier row, not inferred from workflow matrix size.
 
 ---
 
