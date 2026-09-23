@@ -3,7 +3,7 @@
 ## Status
 
 - Layer: C — resilience prerequisite evidence
-- Document class: design-contract candidate
+- Document class: concrete design contract
 - Design origin baseline: `31ebcccde5b4ff0cf456ba4edffa49829ba2e982`
 - Accepted upstream:
   - Transition Request derivation
@@ -11,9 +11,18 @@
   - A2 Freshness/Revalidation -> C1 adapter
   - B1 invariant evidence
 - Downstream contract: C1 `ResiliencePrerequisiteEvidence`
-- Acceptance status: design-review pending
-- Executable implementation: none
+- Acceptance status: accepted
+- Executable implementation: accepted separately; see §55
+- Ratification scope: bounded to the resilience prerequisite channel evidence semantics described in this document. This ratification does not accept or define the deferred C->C1 adapter contract; that is a separate design workstream.
 - Authority effect: none
+
+### Historical terminology
+
+Earlier uses of "candidate" describe the state at that review stage.
+Those stages are followed by §§51–55, which record the final accepted semantics,
+implementation-ready disposition, and accepted implementation provenance.
+
+Ratification does not rewrite those historical review stages.
 
 ## 1. Boundary
 
