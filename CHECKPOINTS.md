@@ -210,3 +210,69 @@ Where justified, use:
 Important checkpoints should periodically be tested for actual recoverability.
 
 A checkpoint that cannot practically be restored should not be treated as a strong recovery point merely because its commit exists.
+
+---
+
+## Recorded checkpoints
+
+### HRZ-CP-20260923-001
+
+**checkpoint_id:** HRZ-CP-20260923-001  
+**predecessor:** none — first concrete checkpoint record in this ledger
+
+**timestamp_utc:** pending — set from this PR GitHub created_at after PR creation
+
+**repository:** hronoaza/studio  
+**branch:** main
+
+**recorded_on_main_sha:** a8b11dd4f1547de79ce25870cac792a757aa27d5  
+**recorded_on_tree_sha:** 09aa3e9f63eb3003ab0e74734e3d5d99872dc8ef
+
+**creating_operator:** Mykola Bezruchko <hronoaza00@gmail.com>
+
+**checkpoint_status:** candidate  
+**provenance_status:** documented  
+**verification_status:** passed-with-limitations
+
+**sensitivity:** ordinary
+
+**restrictions:** documentation-only checkpoint record; no runtime / source / build / test changes
+
+**unresolved_issues:**
+- protection_boundary_commit not yet established;
+- first_protected_commit not yet established;
+- branch protection is not yet enabled.
+
+**recovery_suitability:**
+- source rollback: suitable for repository-content comparison/rollback if otherwise authorized;
+- development rollback: suitable as a source-state reference;
+- release rollback: not established;
+- deployment rollback: not applicable;
+- configuration rollback: not sufficient for GitHub branch-protection state;
+- forensic comparison: suitable.
+
+---
+
+**baseline_reference_commit:** a8b11dd4f1547de79ce25870cac792a757aa27d5  
+Last commit before this governance workstream began.
+
+**pending_governance_action:** enable branch protection on main with:
+
+- require pull request before merge: true;
+- required approving reviews: 0;
+- enforce administrators: true;
+- allow force pushes: false;
+- allow deletions: false;
+- required status checks: none initially.
+
+**governance_semantics:** protection will apply prospectively, not retroactively.
+
+Once protection is enabled, main history cannot be rewritten through force-push, administrator bypass is disabled for the protected path, and any repository-content correction to main requires a new commit through a new pull request. This is intentional enforcement, not a side effect.
+
+**protection_boundary_commit:** pending — will be the merge SHA of this PR and the last commit recorded under unprotected main.
+
+**first_protected_commit:** pending — phase 2 will identify the completing checkpoint PR as the first protected change; the exact merge SHA will remain canonical in the GitHub merge record rather than being self-embedded.
+
+**implementation_note:** with administrator enforcement enabled, the operator cannot force-push to main, cannot bypass the protected merge path as administrator, and cannot amend protected main history. Corrections must proceed through a new PR.
+
+**provenance_note:** the signature-verification state of the phase 1 merge commit will be observed after merge and recorded as evidence in phase 2. No pre-merge claim is made that the future merge commit is already verified.
