@@ -4,7 +4,7 @@
 
 - Layer: C.2 — accepted C resilience evidence -> accepted C1 resilience
            prerequisite input
-- Document class: design-contract candidate
+- Document class: concrete design contract
 - Scope: ProductionResiliencePrerequisiteRecord
          -> ResiliencePrerequisiteEvidence
 - Upstream source: C resilience prerequisite record
@@ -20,12 +20,12 @@
                     §§7, 8, 10, 11
                   accepted B1 adapter contract
                     §§9, 22
-- Acceptance status: design-review pending
+- Acceptance status: accepted
 - Authority effect: none
+- Ratification scope: bounded to the C resilience prerequisite representation boundary defined in this document; does not amend C resilience semantics, transition-pipeline composition semantics, B1 seam convention, or C1 eligibility semantics.
 - Origin baseline: main @ 0a371582f612d406e2c118c162e4f1fca04fda20
-- Proposed module placement: apps/soam-transition-resilience-c1/
-- Proposed target: soam_transition_resilience_c1
-                  (provisional; subject to ratification)
+- Module placement: apps/soam-transition-resilience-c1/
+- Target: soam_transition_resilience_c1
 
 ## 1. Boundary
 
