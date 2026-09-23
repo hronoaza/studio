@@ -220,7 +220,7 @@ A checkpoint that cannot practically be restored should not be treated as a stro
 **checkpoint_id:** HRZ-CP-20260923-001  
 **predecessor:** none — first concrete checkpoint record in this ledger
 
-**timestamp_utc:** pending — set from this PR GitHub created_at after PR creation
+**timestamp_utc:** 2026-09-23T11:37:23Z — GitHub PR #35 created_at
 
 **repository:** hronoaza/studio  
 **branch:** main
