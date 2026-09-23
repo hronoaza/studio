@@ -3,11 +3,12 @@
 ## 0. Status
 
 - Layer: E — top-level composition of transition-eligibility pipeline
-- Document class: design-contract candidate
+- Document class: concrete design contract
 - Scope: composition of request derivation, prerequisite channel evaluation, and C1 eligibility invocation into one coherent pipeline outcome
-- Acceptance status: design-review pending
+- Acceptance status: accepted
+- Ratification scope: bounded to composition semantics for the transition-eligibility pipeline described in §1; not a generic composition framework precedent for future pipelines
 - Authority effect: none
-- Module placement: `apps/soam-transition-pipeline/`; target `soam_transition_pipeline` (provisional; subject to ratification)
+- Module placement: `apps/soam-transition-pipeline/`; target `soam_transition_pipeline`
 - Origin baseline: main @ `87dabeed795294c63a32867668f1fd6052e52b96`
 
 ## 1. Scope
@@ -275,6 +276,4 @@ The following remain open and are subject to amendment:
 - cancellation and partial cleanup;
 - metrics, logging, or observability surfaces beyond §11;
 - pipeline-level timeout;
-- module naming ratification;
-- repository placement of this document itself;
 - composition-local infrastructure failure taxonomy.
