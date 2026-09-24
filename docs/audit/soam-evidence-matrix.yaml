@@ -785,9 +785,19 @@ unresolved:
 
   - id: U-003
     question: >
-      How should self-declared acceptance or implementation-accepted text inside
-      docs/policy/candidates/ be interpreted when docs/policy/README.md states
-      that candidates are under review and not yet accepted?
+      Candidate DESIGN_CONTRACT files in docs/policy/candidates/ contain
+      Acceptance status text stating that implementation was accepted and merged,
+      while docs/policy/README.md defines candidates/ as design contracts under
+      review that are not yet accepted. This is a structural inconsistency in the
+      candidate artifacts themselves; its intended governance interpretation is
+      unresolved.
+    evidence:
+      - path: docs/policy/candidates/soam-2.0-transition-prerequisite-evidence/DESIGN_CONTRACT.md
+        blob_sha: e16dfa26de211f6f03bdd63ba469af22a6975463
+        observed_text: "Acceptance status: Live Validity A1 design reviewed; implementation accepted and merged"
+      - path: docs/policy/candidates/soam-2.0-transition-request-derivation/DESIGN_CONTRACT.md
+        blob_sha: add908dda4d511f09d210b3567940b1a092f2465
+        observed_text: "Acceptance status: design reviewed; implementation accepted and merged"
     affects:
       - governance_artifacts
       - EV-004
