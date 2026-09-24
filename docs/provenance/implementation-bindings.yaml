@@ -11,13 +11,15 @@
 
 schema: soam-implementation-bindings
 version: 1
+schema_evolution: >
+  record_version is per-binding. Multiple record versions may coexist
+  in this file. Schema changes require a separate governance record.
 
 bindings:
   - binding_id: SOAM-BINDING-0001
     record_version: 1
     status: active
     recorded_date: 2026-09-24
-    recorded_matrix_version: "0.1"
 
     scope:
       governs:
@@ -108,14 +110,11 @@ bindings:
         expected_owner: unassigned
 
     audit_ref:
-      matrix_version: "0.1"
-      matrix_date: 2026-09-24
       matrix_path: null
       matrix_materialized: false
-      note: >
-        The canonical evidence matrix has not yet been materialized as a
-        repository file. This binding records the audit version/date without
-        inventing a repository path.
+      audit_basis: >
+        Out-of-band evidence audit conducted 2026-09-24.
+        Not yet materialized as a repository artifact.
 
     supersedes: null
     superseded_by: null
