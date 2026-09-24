@@ -1,0 +1,795 @@
+schema: soam-evidence-matrix
+version: 1
+version_semantics: >
+  Each matrix version records an audit view at its recorded date.
+  Later matrix versions may refine or supersede audit interpretations,
+  but they do not rewrite or replace the underlying policy, provenance,
+  implementation, test, CI, or binding artifacts.
+
+meta:
+  recorded_date: 2026-09-24
+  scope: >
+    Cross-repository SOAM evidence, governance-coverage, verification,
+    provenance, and boundary audit.
+  materialization_role: audit
+  canonical_audit_path: docs/audit/soam-evidence-matrix.yaml
+  evidence_policy:
+    - configured != passed
+    - contract != implementation
+    - implementation != verified execution
+    - test target exists != test passed
+    - CI workflow exists != CI green
+    - documentation claim != implementation evidence
+    - source observation != direct test verification
+    - unknown values are null
+  evidence_levels:
+    E0: claim only
+    E1: source or artifact identity established
+    E2: verification mechanism exists/configured
+    E3: exact execution passed and tied to revision
+    E4: reproducible evidence bundle
+  status_values:
+    - implemented
+    - partial
+    - contract-only
+    - configured
+    - verified
+    - gap
+    - not-applicable
+    - unverified_claim
+  governance_state_values:
+    - directly_governed
+    - referenced_but_not_governed
+    - without_governing_contract
+    - contract_only
+    - null
+
+repositories:
+  governance:
+    repository: hronoaza/studio
+    role:
+      - governance
+      - architecture / design contracts
+      - provenance / ratification
+      - isolated executable Layer-D permission verification slice
+    executable_surfaces:
+      - path: apps/soam-transition-permission
+        role: D1/D3 verifier-only permission crypto slice
+    head_at_materialization: 9f22bda38caee304d9ac3cbeed782cd3a2aa3c55
+
+  runtime:
+    repository: tonybarannn-maker/adaptive-mesh
+    role:
+      - SOAM C1/runtime substrate
+      - eligibility
+      - freshness / revalidation
+      - relationship identity
+      - authority-boundary machinery
+      - packaging / consumer / benchmark verification surfaces
+    head_at_materialization: 2866e3443445d3c423778131c1d6494e412a636d
+    branch_protection:
+      main_protected: false
+      policy_bound: false
+
+  research:
+    repository: tonybarannn-maker/kiko-dna-lab
+    role:
+      - isolated research harness
+    integration_boundary:
+      soam_integration: NOT_AUTHORIZED
+      future_integration_requires_explicit_gate: true
+
+entries:
+  - id: EV-001
+    claim:
+      statement: Permission evidence pipeline exists as a ratified governance contract.
+      scope: governance contract
+    status: contract-only
+    governance_state: contract_only
+    evidence_level: E0
+    sources:
+      - docs/policy/accepted/soam-2.0-permission-evidence/DESIGN_CONTRACT.md
+      - docs/policy/accepted/soam-2.0-permission-evidence/AMENDMENT-1.md
+      - docs/policy/accepted/soam-2.0-permission-evidence/RATIFICATION-1.md
+    gap: >
+      Complete ProductionPermissionVerifier/evaluator, D2 provisioning,
+      D-to-C1 adapter, and production activation are not established.
+
+  - id: EV-002
+    claim:
+      statement: >
+        Permission is distinct from eligibility, authority, capability, and execution.
+      scope: governance contract / runtime boundary
+    status: partial
+    governance_state: referenced_but_not_governed
+    evidence_level: E0
+    sources:
+      - docs/policy/accepted/soam-2.0-permission-evidence/DESIGN_CONTRACT.md
+      - docs/policy/accepted/soam-2.0-permission-evidence/AMENDMENT-1.md
+    gap: >
+      Exact end-to-end implementation-to-contract mapping remains incomplete.
+
+  - id: EV-003
+    claim:
+      statement: >
+        Transition eligibility terminates at eligible_for_authority_consideration -> STOP.
+      scope: runtime boundary
+    status: implemented
+    governance_state: without_governing_contract
+    evidence_level: E2
+    implementation:
+      repository: tonybarannn-maker/adaptive-mesh
+      observed_revision: e1a3be80ef4027786e125240b6876a725ed33a47
+      paths:
+        - include/production_transition_eligibility.hpp
+        - src/detail/production_transition_evaluation_internal.hpp
+        - src/production_transition_evaluator.cpp
+    verification:
+      source: tests/production_transition_eligibility_tests.cpp
+      ctest: run_production_transition_eligibility_tests
+      execution_pass: null
+    governance:
+      accepted_state: referenced_but_not_governed
+      direct_governing_artifact: null
+
+  - id: EV-004
+    claim:
+      statement: Freshness and final revalidation reject stale state.
+      scope: runtime concurrency / state-coherence safety
+    status: implemented
+    governance_state: without_governing_contract
+    evidence_level: E2
+    implementation:
+      repository: tonybarannn-maker/adaptive-mesh
+      observed_revision: e1a3be80ef4027786e125240b6876a725ed33a47
+      paths:
+        - src/detail/production_transition_evaluation_internal.hpp
+        - src/detail/spatial_adaptive_mesh_impl.hpp
+    verification:
+      source:
+        - tests/production_transition_evaluator_live_binding_tests.cpp
+        - tests/internal/production_transition_evaluator_live_scenarios.hpp
+        - tests/support/production_transition_evaluator_live_scenarios.cpp
+      ctest: run_production_transition_evaluator_live_binding_tests
+      execution_pass: null
+    governance:
+      accepted_state: referenced_but_not_governed
+      direct_governing_artifact: null
+    candidates:
+      - path: docs/policy/candidates/soam-2.0-transition-prerequisite-evidence/DESIGN_CONTRACT.md
+        blob_sha: e16dfa26de211f6f03bdd63ba469af22a6975463
+        policy_state: candidate_under_review
+        relevance:
+          - freshness semantics
+          - revalidation semantics
+          - generation/stateVersion checks
+
+  - id: EV-005
+    claim:
+      statement: >
+        Relationship generation is an explicit restricted-origin component of
+        transition request binding; generation mismatch fails closed.
+      scope: runtime request-binding identity
+    status: implemented
+    governance_state: without_governing_contract
+    evidence_level: E2
+    implementation:
+      repository: tonybarannn-maker/adaptive-mesh
+      observed_revision: e1a3be80ef4027786e125240b6876a725ed33a47
+      path: include/production_transition_eligibility.hpp
+    verification:
+      source: tests/production_transition_eligibility_tests.cpp
+      case: C12
+      execution_pass: null
+    governance:
+      accepted_state: referenced_but_not_governed
+      direct_governing_artifact: null
+    candidates:
+      - path: docs/policy/candidates/soam-2.0-transition-request-derivation/DESIGN_CONTRACT.md
+        blob_sha: add908dda4d511f09d210b3567940b1a092f2465
+        policy_state: candidate_under_review
+        relevance:
+          - exact request binding
+          - relationship identity
+          - stateVersion
+          - restricted request-binding construction
+
+  - id: EV-005b
+    claim:
+      statement: >
+        Live relationship identity resolution rejects a captured relationship
+        whose generation or source/target node incarnation no longer matches
+        the current relationship lifecycle.
+      scope: runtime relationship identity resolution
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    implementation:
+      repository: tonybarannn-maker/adaptive-mesh
+      observed_revision: e1a3be80ef4027786e125240b6876a725ed33a47
+      path: src/detail/spatial_adaptive_mesh_impl.hpp
+      symbol: Impl::findLifecycleUnlocked
+    verification: null
+    gap: Dedicated direct verification has not been pinned.
+
+  - id: EV-006
+    claim:
+      statement: Restricted-origin trusted values cannot be fabricated by normal consumers.
+      scope: runtime API boundary
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      expected: compile-fail negative coverage
+      pinned_set: null
+    gap: Complete negative-test set and current revision pinning required.
+
+  - id: EV-007
+    claim:
+      statement: Consumer cannot construct evaluator or inject a privileged backend.
+      scope: runtime API boundary
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      expected_tests:
+        - consumer_construct_evaluator
+        - consumer_inject_backend
+    gap: Exact source paths, CTest identities, and current-revision evidence are not pinned.
+
+  - id: EV-008
+    claim:
+      statement: Consumer cannot fabricate authority or capability.
+      scope: runtime authority boundary
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      expected_tests:
+        - direct_capability_construction
+        - capability_copy
+        - fabricated_authority_context
+    gap: Current-head test targets and execution evidence are not established.
+
+  - id: EV-009
+    claim:
+      statement: Scenario/test privilege is not consumer-selectable.
+      scope: runtime isolation boundary
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      expected_tests:
+        - consumer_include_scenario_surface
+        - consumer_force_scenario_macro
+    gap: Implementation revision and expected-failure evidence are not pinned.
+
+  - id: EV-010
+    claim:
+      statement: Public API is explicitly classified as stable, experimental, compatibility, or internal.
+      scope: documentation contract
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    artifact: tonybarannn-maker/adaptive-mesh/docs/public-api-stability.md
+
+  - id: EV-011
+    claim:
+      statement: Domain API is separated from the compiled production runtime.
+      scope: build / package boundary
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    artifact: tonybarannn-maker/adaptive-mesh/CMakeLists.txt
+    targets:
+      - AdaptiveMesh::adaptive_mesh_domain
+      - AdaptiveMesh::adaptive_mesh
+    verification:
+      installed_consumer_configured: true
+
+  - id: EV-012
+    claim:
+      statement: K12 live integration is isolated as experimental runtime.
+      scope: build / package boundary
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    target: AdaptiveMesh::adaptive_mesh_k12_live
+    gap: Exact verification result is not pinned.
+
+  - id: EV-013
+    claim:
+      statement: Runtime artifacts do not expose scenario-only surfaces.
+      scope: build isolation
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      family: artifact-isolation
+      exact_tests: null
+    gap: Exact test identities and execution results are not pinned.
+
+  - id: EV-014
+    claim:
+      statement: Worker-pool lifecycle is stress tested.
+      scope: runtime concurrency
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      test: worker_pool_lifecycle_tests
+      execution_pass: null
+
+  - id: EV-015
+    claim:
+      statement: Topology mutation provides exception-safety validation.
+      scope: runtime safety
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    verification:
+      test: topology_exception_safety_tests
+      execution_pass: null
+
+  - id: EV-016
+    claim:
+      statement: ASan/UBSan verification is configured.
+      scope: verification mechanism
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    ci:
+      workflow: .github/workflows/ci.yml
+      job: debug-sanitizers
+      execution_pass: null
+
+  - id: EV-017
+    claim:
+      statement: ThreadSanitizer verification is configured.
+      scope: verification mechanism
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    ci:
+      workflow: .github/workflows/ci.yml
+      job: thread-sanitizer
+      execution_pass: null
+
+  - id: EV-018
+    claim:
+      statement: Warnings-as-errors build policy is configured.
+      scope: build policy
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    implementation:
+      file: CMakeLists.txt
+      symbol: SOAM_WARNINGS_AS_ERRORS
+
+  - id: EV-019
+    claim:
+      statement: Installed package is consumable through exported CMake targets.
+      scope: package-consumer verification
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    verification:
+      source: tests/package_consumer
+      ci_job: installed-consumer
+      execution_pass: null
+    gap: Published package or release consumption is not established.
+
+  - id: EV-020
+    claim:
+      statement: Manual static-runtime consumer path is checked.
+      scope: package-consumer verification
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    verification:
+      ci_job: installed-consumer
+      execution_pass: null
+
+  - id: EV-021
+    claim:
+      statement: Profiling build preserves functional behavior.
+      scope: build-mode equivalence
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    implementation:
+      target: adaptive_mesh_profile
+    verification:
+      ci_job: profile-runtime
+      execution_pass: null
+
+  - id: EV-022
+    claim:
+      statement: Benchmark mechanisms exist.
+      scope: performance evidence mechanism
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    targets:
+      - mesh_benchmark
+      - mesh_scaling_sweep
+      - mesh_phase_profile
+    gap: No canonical benchmark results table is pinned.
+
+  - id: EV-023
+    claim:
+      statement: Benchmark claims are revision- and environment-bound.
+      scope: evidence discipline
+    status: gap
+    governance_state: null
+    evidence_level: E0
+    gap: >
+      No canonical benchmark evidence record pins hardware, compiler,
+      environment, and exact implementation revision.
+
+  - id: EV-024
+    claim:
+      statement: Repository-cleanliness checks are configured.
+      scope: CI repository hygiene
+    status: configured
+    governance_state: null
+    evidence_level: E2
+    ci:
+      workflow: .github/workflows/ci.yml
+      checks:
+        - git diff
+        - untracked-file detection
+      execution_pass: null
+
+  - id: EV-025
+    claim:
+      statement: KIKO-DNA requires explicit authorization before SOAM integration.
+      scope: research / runtime governance boundary
+    status: contract-only
+    governance_state: contract_only
+    evidence_level: E1
+    artifact: tonybarannn-maker/kiko-dna-lab/README.md
+    gap: Relationship to adaptive-mesh/experiments/kiko remains ambiguous.
+
+  - id: EV-026
+    claim:
+      statement: adaptive-mesh experiments/kiko is isolated from SOAM Core.
+      scope: research isolation
+    status: partial
+    governance_state: null
+    evidence_level: E0
+    implementation: tonybarannn-maker/adaptive-mesh/experiments/kiko
+    verification:
+      test: soam_k9_isolation_tests
+    gap: Naming and relationship to KIKO-DNA Lab remain ambiguous.
+
+  - id: EV-027
+    claim:
+      statement: Governance artifacts preserve an immutable provenance chain.
+      scope: governance provenance
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    source: docs/policy/accepted/soam-2.0-permission-evidence/RATIFICATION-1.md
+    observations:
+      - >
+        Direct file creation on protected studio/main was rejected with HTTP 409:
+        Changes must be made through a pull request.
+      - >
+        Studio ruleset 23879954 was observed active for the default branch,
+        with pull-request changes required, zero approving reviews required,
+        merge as the allowed merge method, and no bypass actors.
+      - >
+        PR #47 was accepted through the required PR path.
+    gap: >
+      These are enforcement observations; the row does not claim a complete
+      formal model of every governance rule or historical ruleset state.
+
+  - id: EV-028
+    claim:
+      statement: Design ratification does not imply implementation acceptance.
+      scope: governance boundary
+    status: implemented
+    governance_state: null
+    evidence_level: E1
+    source: docs/policy/accepted/soam-2.0-permission-evidence/RATIFICATION-1.md
+    gap: Cross-repository implementation governance remains incomplete.
+
+  - id: EV-029a
+    claim:
+      statement: >
+        Each substantive claim in the ratified permission-evidence design set
+        maps to an identifiable runtime EV row, an identified Layer-D
+        implementation artifact, or is explicitly governance/design-only.
+      scope: cross-repository semantic traceability
+    status: partial
+    governance_state: null
+    evidence_level: E1
+    structural_finding: >
+      The ratified permission-evidence set directly governs the isolated Layer-D
+      implementation represented by EV-033. EV-003, EV-004 and EV-005 are
+      referenced runtime substrates rather than adaptive-mesh implementation
+      claims governed by this ratified set. EV-005b provides semantic support only.
+
+  - id: EV-029b
+    claim:
+      statement: >
+        A canonical provenance record binds exact governance revisions to exact
+        implementation revisions and identifies governed and boundary relationships.
+      scope: cross-repository provenance artifact
+    status: partial
+    governance_state: null
+    evidence_level: E1
+    canonical_reference:
+      repository: hronoaza/studio
+      path: docs/provenance/implementation-bindings.yaml
+      binding_id: SOAM-BINDING-0001
+    l1_projection:
+      repository: tonybarannn-maker/adaptive-mesh
+      path: docs/provenance.md
+      acceptance_mode: pull_request_merge
+      review_mode: self_merge_no_external_approval
+      branch_protection_at_acceptance: none
+      content_unchanged_during_merge: true
+    gap: >
+      No canonical binding currently governs an adaptive-mesh implementation
+      revision. The L1 projection provides discoverability but is not policy-bound.
+      External review of SOAM-BINDING-0001 is not present.
+
+  - id: EV-030
+    claim:
+      statement: >
+        A complete release/evidence bundle can identify claim -> contract ->
+        implementation -> verification.
+      scope: release evidence
+    status: gap
+    governance_state: null
+    evidence_level: E0
+    artifact: null
+    gap: Canonical release evidence envelope has not yet been created.
+
+  - id: EV-031
+    claim:
+      statement: Evaluation binding invalidation drains outstanding leases safely.
+      scope: runtime binding lifecycle / concurrency
+    status: partial
+    governance_state: null
+    evidence_level: E2
+    verification:
+      source: tests/production_transition_evaluator_live_concurrency_tests.cpp
+      ctest: run_production_transition_evaluator_live_concurrency_tests
+      ci_job: thread-sanitizer
+      execution_pass: null
+    gap: Production lifecycle implementation symbol and successful TSan execution are not pinned.
+
+  - id: EV-032
+    claim:
+      statement: Relationship generation exhaustion/wrap behavior is defined and fail-closed.
+      scope: runtime generation counter semantics
+    status: gap
+    governance_state: null
+    evidence_level: E0
+    source_observation:
+      repository: tonybarannn-maker/adaptive-mesh
+      path: src/detail/spatial_adaptive_mesh_impl.hpp
+      note: >
+        The observed relationship-generation mutation path increments uint64_t
+        generation state; no explicit max/wrap guard was located in that targeted path.
+    gap: Global exhaustion/wrap behavior has not been established.
+
+  - id: EV-033
+    claim:
+      statement: >
+        hronoaza/studio current main contains an isolated executable D1/D3
+        permission-verification slice with fixed payload parsing, Ed25519
+        verification, verifier-only public compile-time boundaries, frozen
+        vectors, and compile-fail probes.
+      scope: Layer-D runtime slice identity
+    status: implemented
+    governance_state: directly_governed
+    evidence_level: E2
+    implementation:
+      repository: hronoaza/studio
+      origin_commit: 41627df13777aefd625e85003ca45ff6f2cc50e9
+      path_root: apps/soam-transition-permission
+      target: AdaptiveMesh::soam_transition_permission
+    verification:
+      ctest:
+        - run_permission_attestation_tests
+        - reject_permission_direct_payload
+        - reject_permission_direct_public_key
+        - reject_permission_direct_signature
+        - reject_permission_signing_surface
+        - reject_permission_dynamic_verify_surface
+      execution_pass: null
+    ci:
+      workflow: .github/workflows/soam-transition-permission-validation.yml
+      triggers:
+        pull_request: path-scoped
+        workflow_dispatch: true
+        push: false
+      jobs:
+        - debug-sanitizers
+        - thread-sanitizer
+    observations:
+      - >
+        No automatic main-HEAD execution exists by construction because the
+        workflow has no push trigger. E3 for a specific main revision requires
+        workflow_dispatch or a future workflow-policy change.
+      - >
+        The production signing surface is not constructible through the public
+        API; attempted use is verified at compile time, not as a runtime rejection.
+      - >
+        The AdaptiveMesh:: target namespace is reused inside hronoaza/studio;
+        the architectural rationale for that namespace reuse is not established.
+
+  - id: EV-034
+    claim:
+      statement: >
+        The live-validity-c1-adapter contract states that it was applied by
+        implementation PR #26.
+      scope: contract-authored implementation claim
+    status: unverified_claim
+    governance_state: null
+    evidence_level: E0
+    source:
+      contract: docs/policy/accepted/soam-2.0-live-validity-c1-adapter/DESIGN_CONTRACT.md
+      blob_sha: 4db170d6bac964b0d6ae2f288df0d45050feda73
+      statement_excerpt: applied by implementation PR #26
+    verification: null
+    gap: >
+      PR #26 existence, repository identity, implementation content, and current
+      relevance have not been established in this row. The statement remains
+      a documentation claim, not a provenance fact.
+
+governance_artifacts:
+  - family: permission-evidence
+    policy_state: accepted
+    acceptance_form: separate_ratification_artifact
+    contract: docs/policy/accepted/soam-2.0-permission-evidence/DESIGN_CONTRACT.md
+    amendment: docs/policy/accepted/soam-2.0-permission-evidence/AMENDMENT-1.md
+    ratification: docs/policy/accepted/soam-2.0-permission-evidence/RATIFICATION-1.md
+    direct_governance:
+      - EV-033
+    canonical_binding:
+      path: docs/provenance/implementation-bindings.yaml
+      binding_id: SOAM-BINDING-0001
+
+  - family: transition-pipeline
+    policy_state: accepted
+    acceptance_form: embedded_in_contract
+    contract:
+      path: docs/policy/accepted/soam-2.0-transition-pipeline/DESIGN_CONTRACT.md
+      blob_sha: aaeae8746f15f3ac18df0be1a5c48794e8753083
+    semantic_scope: composition
+    audit_relation:
+      EV-003: referenced_but_not_governed
+
+  - family: live-validity-c1-adapter
+    policy_state: accepted
+    acceptance_form: embedded_in_contract
+    contract:
+      path: docs/policy/accepted/soam-2.0-live-validity-c1-adapter/DESIGN_CONTRACT.md
+      blob_sha: 4db170d6bac964b0d6ae2f288df0d45050feda73
+    semantic_scope: A1-to-C1 adapter boundary
+    audit_relation:
+      EV-004: referenced_but_not_governed
+
+  - family: invariant-c1-adapter
+    policy_state: accepted
+    acceptance_form: embedded_in_contract
+    contract:
+      path: docs/policy/accepted/soam-2.0-invariant-c1-adapter/DESIGN_CONTRACT.md
+      blob_sha: 69a41886e0a0374cd40d88370d94b3692e496715
+    semantic_scope: invariant-to-C1 adapter boundary
+
+  - family: resilience-c1-adapter
+    policy_state: accepted
+    acceptance_form: embedded_in_contract
+    contract:
+      path: docs/policy/accepted/soam-2.0-resilience-c1-adapter/DESIGN_CONTRACT.md
+      blob_sha: dd97a7c03f6468cdeb25378b6c69a13e3b3873eb
+    semantic_scope: resilience-to-C1 adapter boundary
+
+  - family: resilience-evidence
+    policy_state: accepted
+    acceptance_form: embedded_in_contract
+    contract:
+      path: docs/policy/accepted/soam-2.0-resilience-evidence/DESIGN_CONTRACT.md
+      blob_sha: 2b62df019c9ef0a0f59d0f4bff459761b83e8daf
+    semantic_scope: resilience prerequisite evidence
+
+  - family: transition-prerequisite-evidence
+    policy_state: candidate_under_review
+    acceptance_form: not_accepted
+    contract:
+      path: docs/policy/candidates/soam-2.0-transition-prerequisite-evidence/DESIGN_CONTRACT.md
+      blob_sha: e16dfa26de211f6f03bdd63ba469af22a6975463
+    relevance:
+      - EV-004 freshness semantics
+      - EV-004 revalidation semantics
+      - generation/stateVersion checks
+
+  - family: transition-request-derivation
+    policy_state: candidate_under_review
+    acceptance_form: not_accepted
+    contract:
+      path: docs/policy/candidates/soam-2.0-transition-request-derivation/DESIGN_CONTRACT.md
+      blob_sha: add908dda4d511f09d210b3567940b1a092f2465
+    relevance:
+      - EV-005 exact request binding
+      - relationship identity
+      - stateVersion
+      - restricted request-binding construction
+
+  - family: c1-transition-eligibility-migration
+    artifact_class: canonical_provenance
+    artifact:
+      path: docs/provenance/migrations/soam-2.0-transition-eligibility/MIGRATION_RECORD.md
+      blob_sha: d466d76e22344a49867fab8fb7bda2e2c61ef057
+    recorded_state:
+      migration_stage: verified
+      acceptance_status: acceptance-pending
+      acceptance_meaning: not accepted into Current Baseline
+    repository_history:
+      pull_request: 5
+      merged: true
+      merge_commit_sha: 400ccfa75f128644b648f36e179208923bad6eb5
+      merged_at: 2026-09-21T19:28:18Z
+
+structural_findings:
+  - id: SF-PERMISSION-GOVERNANCE-BOUNDARY
+    statement: >
+      The ratified permission-evidence set directly governs the Studio Layer-D
+      slice represented by EV-033. It does not govern adaptive-mesh C1 runtime
+      implementation revisions; EV-003/004/005 are boundary/runtime substrates
+      referenced by the design.
+
+  - id: SF-GOV-CORE-COVERAGE
+    statement: >
+      The current Studio accepted-policy set does not expose an accepted
+      normative policy contract owning the C1 core eligibility STOP semantics,
+      A1 core freshness/revalidation semantics, or the underlying exact
+      request-binding identity semantics implemented by adaptive-mesh.
+      Candidate policy documents exist for freshness/revalidation and
+      transition-request derivation. This is an accepted-policy coverage
+      observation, not a runtime defect.
+
+  - id: SF-C1-MIGRATION-STATE
+    statement: >
+      The canonical provenance migration record for C1 transition eligibility
+      declares migration_stage=verified and acceptance_status=acceptance-pending,
+      explicitly meaning not accepted into Current Baseline and requiring
+      explicit acceptance before merge. Studio PR #5 nevertheless merged that
+      migration into main at commit 400ccfa75f128644b648f36e179208923bad6eb5.
+      This audit records the divergence between the provenance-recorded state
+      and repository history without asserting that the state is or is not
+      legitimate under Studio's governance model.
+
+  - id: SF-ADAPTIVE-MESH-MAIN-PROTECTION
+    statement: >
+      tonybarannn-maker/adaptive-mesh main was observed unprotected.
+      References from external governance artifacts to adaptive-mesh revisions
+      are therefore advisory rather than repository-policy-enforced, and main
+      may change without a PR-enforcement trail.
+
+unresolved:
+  - id: U-002
+    question: >
+      Does Studio maintain a governance model in which a merged migration can
+      remain acceptance-pending indefinitely, or is acceptance-pending always
+      intended to be transitional?
+    affects:
+      - SF-C1-MIGRATION-STATE
+      - SF-GOV-CORE-COVERAGE
+
+  - id: U-003
+    question: >
+      How should self-declared acceptance or implementation-accepted text inside
+      docs/policy/candidates/ be interpreted when docs/policy/README.md states
+      that candidates are under review and not yet accepted?
+    affects:
+      - governance_artifacts
+      - EV-004
+      - EV-005
+      - EV-034
