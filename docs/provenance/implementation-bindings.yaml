@@ -1,0 +1,120 @@
+# Canonical append-only SOAM implementation binding records.
+# New bindings are appended. Existing active/superseded records are not silently rewritten.
+#
+# Relation semantics:
+#   directly_governed   - this ratified governance set directly governs the referenced EV/artifact.
+#   referenced_upstream - audit boundary marker; referenced by the governed design but not governed by this binding.
+#   semantic_support    - implementation property supports the design semantically but is not governed by this binding.
+#
+# ev_relations are audit observations sourced from audit_ref. They are not independently
+# maintained governance claims of this binding.
+
+schema: soam-implementation-bindings
+version: 1
+
+bindings:
+  - binding_id: SOAM-BINDING-0001
+    status: active
+    recorded_date: 2026-09-24
+    recorded_matrix_version: "0.1"
+
+    scope:
+      governs:
+        - repository: hronoaza/studio
+          path_root: apps/soam-transition-permission
+          note: >
+            Isolated executable Layer-D D1/D3 permission-verification slice.
+
+      does_not_govern:
+        - repository: tonybarannn-maker/adaptive-mesh
+          note: >
+            adaptive-mesh C1 eligibility, freshness, request-binding and live
+            relationship-identity EV rows are referenced only to document the
+            boundary of this ratified set. No adaptive-mesh revision is governed
+            by this binding.
+
+    governance:
+      repository: hronoaza/studio
+      artifacts_observed_at_commit: ac72fb92967cc238bc393eb8fd8c3748e88e0eed
+
+      contract:
+        path: docs/policy/accepted/soam-2.0-permission-evidence/DESIGN_CONTRACT.md
+        blob_sha: a518293224a7a2afc13216ebb481819923513a38
+
+      amendment:
+        path: docs/policy/accepted/soam-2.0-permission-evidence/AMENDMENT-1.md
+        blob_sha: 7a6194dc9cfde588b206d9be437ead2704f19dd8
+
+      ratification:
+        path: docs/policy/accepted/soam-2.0-permission-evidence/RATIFICATION-1.md
+        blob_sha: 3d30e4621717753a23acbf6dbaa6336f25916095
+
+    implementation:
+      repository: hronoaza/studio
+      commit_sha: ac72fb92967cc238bc393eb8fd8c3748e88e0eed
+      origin_commit: 41627df13777aefd625e85003ca45ff6f2cc50e9
+      path_root: apps/soam-transition-permission
+      target:
+        cmake_target: soam_transition_permission
+        alias: AdaptiveMesh::soam_transition_permission
+
+    ev_relations_scope_note: >
+      EV relations below are audit observations from the matrix version recorded
+      in audit_ref. adaptive-mesh EV-003/004/005/005b are boundary markers only;
+      they are not governed by SOAM-BINDING-0001.
+
+    ev_relations:
+      - id: EV-033
+        relation: directly_governed
+        via: >
+          Ratified D1/D3 permission-verification slice. AMENDMENT-1 records the
+          slice as implemented and accepted, and the implementation is present
+          on the observed studio/main revision.
+
+      - id: EV-003
+        relation: referenced_upstream
+        via: >
+          The permission-evidence design treats C1 eligibility and C1 STOP as an
+          existing downstream boundary rather than an implementation governed by D.
+
+      - id: EV-004
+        relation: referenced_upstream
+        via: >
+          DESIGN_CONTRACT explicitly identifies A1 Freshness/Revalidation and
+          A2 Freshness/Revalidation-to-C1 as accepted upstream contracts.
+
+      - id: EV-005
+        relation: referenced_upstream
+        via: >
+          D consumes exact request-binding semantics including relationship
+          generation, direction, transition class and stateVersion, but does not
+          govern the underlying C1 binding substrate.
+
+      - id: EV-005b
+        relation: semantic_support
+        via: >
+          Live relationship-incarnation resolution supports exact-binding
+          semantics, but the permission-evidence ratified set does not directly
+          specify or govern the internal identity-resolution implementation.
+
+    outstanding_obligations:
+      - id: family:d-to-c1-adapter
+        description: >
+          Total D-to-C1 conversion is specified in DESIGN_CONTRACT section 57.
+          AMENDMENT-1 and RATIFICATION-1 explicitly do not establish adapter
+          implementation acceptance.
+        status: contract_only
+        expected_owner: unassigned
+
+    audit_ref:
+      matrix_version: "0.1"
+      matrix_date: 2026-09-24
+      matrix_path: null
+      matrix_materialized: false
+      note: >
+        The canonical evidence matrix has not yet been materialized as a
+        repository file. This binding records the audit version/date without
+        inventing a repository path.
+
+    supersedes: null
+    superseded_by: null
