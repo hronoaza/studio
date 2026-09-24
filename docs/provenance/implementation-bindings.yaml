@@ -118,3 +118,28 @@ bindings:
 
     supersedes: null
     superseded_by: null
+
+contextualization_records:
+  - id: CTX-0001
+    record_version: 1
+    recorded_date: 2026-09-24
+    affects_binding: SOAM-BINDING-0001
+    statement: >
+      The out-of-band audit basis referenced by SOAM-BINDING-0001 has been
+      materialized as docs/audit/soam-evidence-matrix.yaml. The audit artifact
+      was accepted via PR #48 at merge commit
+      9fa3961881f792e290c72816277428db64a57f03 with file blob
+      627442c9638b73f4bd8d2d5f68bcbb990d6aa75c.
+      This record contextualizes SOAM-BINDING-0001 but does not modify it.
+    audit_artifact:
+      repository: hronoaza/studio
+      path: docs/audit/soam-evidence-matrix.yaml
+      pull_request: 48
+      merge_commit_sha: 9fa3961881f792e290c72816277428db64a57f03
+      file_blob_sha: 627442c9638b73f4bd8d2d5f68bcbb990d6aa75c
+      accepted_date: 2026-09-24
+      content_unchanged_during_merge: true
+    field_semantics_note: >
+      matrix_materialized: false in SOAM-BINDING-0001 is a snapshot of the
+      state at binding-record creation time and remains accurate for that
+      moment. It is not a live pointer.
